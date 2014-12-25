@@ -1,0 +1,6 @@
+[submodule "src/vendor/hawk.js"]
+	path = src/vendor/hawk.js
+	url = https://github.com/hueniverse/hawk.git
+[submodule "src/vendor/hawk.rb"]
+	path = src/vendor/hawk.rb
+	url = https://github.com/tent/hawk-ruby.git
