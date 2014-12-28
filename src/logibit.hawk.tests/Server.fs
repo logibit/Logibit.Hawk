@@ -1,4 +1,4 @@
-﻿module logibit.Hawk.Tests.Server
+﻿module logibit.hawk.Tests.Server
 
 open System
 
@@ -6,9 +6,25 @@ open Fuchu
 
 open NodaTime
 
-open logibit.Hawk
-open logibit.Hawk.Tests.Shared
-open logibit.Hawk.Server
+open logibit.hawk
+open logibit.hawk.Types
+
+open logibit.hawk.Tests.Shared
+open logibit.hawk.Server
+
+[<Tests>]
+let util_tests =
+  let sample = "2014-05-06T04:22:56+0200"
+  testList "can parse ISO8601" [
+    testCase sample <| fun _ ->
+      match Parse.iso8601_instant sample with
+      | Choice1Of2 inst ->
+        let dto =
+          DateTimeOffset(2014, 05, 06, 4, 22, 56, TimeSpan.FromHours(2.))
+        Assert.Equal("should eq", Instant.FromDateTimeOffset(dto), inst)
+      | Choice2Of2 err ->
+        Tests.failtestf "couldn't parse %s into Instant" sample
+    ]
 
 [<Tests>]
 let authorization_header =
@@ -37,9 +53,7 @@ let authorization_header =
       Assert.Equal("should have hash", "bsvY3IfUllw6V5rvk4tStEvpBhE=", values.["hash"])
       Assert.Equal("should have ext", "Bazi,nga!", values.["ext"])
       Assert.Equal("should have mac", "qbf1ZPG/r/e06F4ht+T77LXi5vw=", values.["mac"])
-
     ]
-
 
 [<Tests>]
 let server =

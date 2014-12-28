@@ -1,8 +1,9 @@
-﻿module logibit.Hawk.Tests.Shared
+﻿module logibit.hawk.Tests.Shared
 
 open Fuchu
 
-open logibit.Hawk
+open logibit.hawk
+open logibit.hawk.Types
 
 let credentials algo = 
   { id        = "123456"

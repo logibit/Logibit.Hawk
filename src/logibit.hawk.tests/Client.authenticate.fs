@@ -1,10 +1,10 @@
-﻿module logibit.Hawk.Tests.ClientAuthenticate
+﻿module logibit.hawk.Tests.ClientAuthenticate
 
 open Fuchu
 
-open logibit.Hawk
-open logibit.Hawk.Tests.Shared
-open logibit.Hawk.Client
+open logibit.hawk
+open logibit.hawk.Tests.Shared
+open logibit.hawk.Client
 
 [<Tests>]
 let client =

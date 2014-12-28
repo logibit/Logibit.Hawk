@@ -1,9 +1,11 @@
-﻿module logibit.Hawk.Tests.Crypto
+﻿module logibit.hawk.Tests.Crypto
 
 open Fuchu
 
-open logibit.Hawk
-open logibit.Hawk.Tests.Shared
+open logibit.hawk
+open logibit.hawk.Types
+
+open logibit.hawk.Tests.Shared
 
 [<Tests>]
 let crypto =

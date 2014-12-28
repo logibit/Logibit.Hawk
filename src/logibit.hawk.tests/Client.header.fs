@@ -1,10 +1,12 @@
-﻿module logibit.Hawk.Tests.ClientHeader
+﻿module logibit.hawk.Tests.ClientHeader
 
 open Fuchu
 
-open logibit.Hawk
-open logibit.Hawk.Tests.Shared
-open logibit.Hawk.Client
+open logibit.hawk
+open logibit.hawk.Types
+open logibit.hawk.Client
+
+open logibit.hawk.Tests.Shared
 
 [<Tests>]
 let client =
