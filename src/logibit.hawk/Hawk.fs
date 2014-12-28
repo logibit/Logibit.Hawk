@@ -64,6 +64,26 @@ module ChoiceCombinators =
 
   let map f o = (o >>- f)
 
+module Regex =
+  open System.Text.RegularExpressions
+
+  let split pattern input =
+    Regex.Split(input, pattern)
+    |> List.ofArray
+
+  let replace pattern replacement input =
+    Regex.Replace(input, pattern, (replacement : string))
+
+  let ``match`` pattern input =
+    match Regex.Matches(input, pattern) with
+    | x when x.Count > 0 ->
+      x
+      |> Seq.cast<Match>
+      |> Seq.head
+      |> fun x -> x.Groups
+      |> Some
+    | _ -> None
+
 open NodaTime
 
 [<Literal>]
@@ -384,3 +404,56 @@ module Client =
               : Choice<HeaderData, HeaderError> =
     Validation.validate_uri uri
     >>= fun uri -> header uri meth pars
+
+module Server =
+  open System
+
+  open NodaTime
+
+  type CredsError =
+    | NotFound
+    | Other of string
+
+  type UserId = string
+
+  type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
+
+  type AuthError =
+    | Missing of string
+    | StaleTimestamp
+    | CredsError
+
+  type Req =
+    { ``method``    : HttpMethod
+      uri           : Uri
+      authorisation : string }
+
+  type Settings<'a> =
+    { clock          : IClock
+      allowed_offset : Duration
+      creds_repo     : CredsRepo<'a> }
+
+// 10       parts = header.sub(/\AHawk\s+/, '').split(/,\s*/)¬
+//  9       parts.inject(Hash.new) do |memo, part|¬
+//  8         next memo unless part =~ %r{([a-z]+)=(['"])([^\2]+)\2}¬
+//  7         key, val = $1, $3¬
+//  6         memo[key.to_sym] = val¬
+//  5         memo¬
+//  4       end
+  let parse_header (header : string) =
+    header
+    |> Regex.replace "\AHawk\s+" ""
+    |> Regex.split ",\s*"
+    |> List.fold (fun memo part ->
+      match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
+      | Some groups ->
+        memo |> Map.add groups.["k"].Value groups.["v"].Value
+      | None -> memo
+      ) Map.empty
+
+  let authenticate (s : Settings<'a>) (req : Req)
+                   : Choice<Credentials * 'a, AuthError> =
+    let now = s.clock.Now
+
+
+    Choice2Of2 CredsError

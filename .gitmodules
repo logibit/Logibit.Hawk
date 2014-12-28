@@ -4,3 +4,6 @@
 [submodule "src/vendor/hawk.rb"]
 	path = src/vendor/hawk.rb
 	url = https://github.com/tent/hawk-ruby.git
+[submodule "src/vendor/hoek"]
+	path = src/vendor/hoek
+	url = https://github.com/hapijs/hoek.git

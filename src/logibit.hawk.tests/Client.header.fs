@@ -1,4 +1,4 @@
-﻿module logibit.Hawk.Tests.Client
+﻿module logibit.Hawk.Tests.ClientHeader
 
 open Fuchu
 
@@ -9,42 +9,22 @@ open logibit.Hawk.Client
 [<Tests>]
 let client =
 
-  let some_opts =
-    { credentials  =
-        { id        = "123456"
-          key       = "2983d45yun89q"
-          algorithm = SHA1 }
-      ext          = None
-      timestamp    = 1353809207UL
+  let valid_sha1_opts =
+    { credentials      = credentials SHA1
+      ext              = Some "Bazinga!"
+      timestamp        = 1353809207UL
       localtime_offset = None
-      nonce        = Some "Ygvqdz"
-      payload      = None
-      hash         = None
-      content_type = Some "text/plain"
-      app          = None
-      dlg          = None }
-
-  let ensure_value = function
-    | Choice2Of2 err -> Tests.failtestf "unexpected error: %A" err
-    | Choice1Of2 x -> x
-
-  let ensure_err = function
-    | Choice1Of2 x -> Tests.failtestf "unexpected success: %A" x
-    | Choice2Of2 err -> err
+      nonce            = Some "Ygvqdz"
+      payload          = Some "something to write about"
+      content_type     = None
+      hash             = None
+      app              = None
+      dlg              = None }
 
   testList "#header" [
     testCase "returns a valid authorization header (sha1)" <| fun _ ->
       let res =
-        { credentials      = credentials SHA1
-          ext              = Some "Bazinga!"
-          timestamp        = 1353809207UL
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = Some "something to write about"
-          content_type     = None
-          hash             = None
-          app              = None
-          dlg              = None }
+        valid_sha1_opts
         |> Client.header' "http://example.net/somewhere/over/the/rainbow" POST
         |> ensure_value
       Assert.Equal("HMACs should eq",
@@ -139,12 +119,11 @@ let client =
 
     testCase "error on invalid uri" <| fun _ ->
       let error =
-        Client.header' "htssssssLALALLALLALALALAver/the/rainbow" POST some_opts
+        Client.header' "htssssssLALALLALLALALALAver/the/rainbow" POST valid_sha1_opts
         |> ensure_err
       Assert.Equal("should have invalid uri", InvalidUri, error)
 
     testCase "error on invalid - empty - uri" <| fun _ ->
-      let error = Client.header' "" POST some_opts |> ensure_err
+      let error = Client.header' "" POST valid_sha1_opts |> ensure_err
       Assert.Equal("should have invalid uri", InvalidUri, error)
-
     ]
