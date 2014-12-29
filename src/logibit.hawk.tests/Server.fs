@@ -95,8 +95,8 @@ let server =
         port          = None }
       |> authenticate settings
       |> ensure_value
-      |> ignore
-      ()
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
 
     testCase "passes auth valid Client.header value" <| fun _ ->
       // same as:
@@ -124,5 +124,64 @@ let server =
         port          = None }
       |> authenticate settings
       |> ensure_value
-      |> ignore
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
+
+    testCase "parses a valid authentication header (sha256)" <| fun _ ->
+      let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
+                   "mac=\"m8r1rHbXN6NgO+KIIhjO7sFRyd78RNGVUwehe8Cp2dU=\", ext=\"some-app-data\""
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
+        authorisation = header
+        payload       = None
+        host          = None
+        port          = None }
+      |> authenticate settings
+      |> ensure_value
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
+
+    testCase "parses a valid authentication header (host override)" <| fun _ ->
+      let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
+                   "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+      { ``method``    = GET
+        uri           = Uri "http://example1.com:8080/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = Some "example.com"
+        port          = None }
+      |> authenticate settings
+      |> ensure_value
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
+
+    testCase "parses a valid authentication header (host port override)" <| fun _ ->
+      let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
+                   "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+      { ``method``    = GET
+        uri           = Uri "http://example1.com:80/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = Some "example.com"
+        port          = Some 8080us }
+      |> authenticate settings
+      |> ensure_value
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
+
+    testCase "parses a valid authentication header (POST with payload-hash, payload for later check)" <| fun _ ->
+      let header = "Hawk id=\"123456\", ts=\"1357926341\", nonce=\"1AwuJD\", " +
+                   "hash=\"qAiXIVv+yjDATneWxZP2YCTa9aHRgQdnH9b3Wc+o3dg=\", " +
+                   "ext=\"some-app-data\", " +
+                   "mac=\"UeYcj5UoTVaAWXNvJfLVia7kU3VabxCqrccXP8sUGC4=\""
+      { ``method``    = POST
+        uri           = Uri "http://example.com:8080/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = None
+        port          = None }
+      |> authenticate settings
+      |> ensure_value
+      |> fun (_, user) ->
+        Assert.Equal("return value", "steve", user)
     ]
