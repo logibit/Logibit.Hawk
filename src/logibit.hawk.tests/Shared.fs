@@ -17,3 +17,9 @@ let ensure_value = function
 let ensure_err = function
   | Choice1Of2 x -> Tests.failtestf "unexpected success: %A" x
   | Choice2Of2 err -> err
+
+module UTF8 =
+  open System.Text
+
+  let bytes (s : string) =
+    Encoding.UTF8.GetBytes s

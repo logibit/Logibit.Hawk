@@ -40,14 +40,18 @@ let gen_norm_str (``type`` : string) (opts : FullAuth) =
       ]
 
 let init_payload_hash (algo : Algo) content_type =
-  let h = Hash.mk algo.DotNetString (String.Concat ["hawk."; header_version; ".payload\n" ])
-  Hash.update h (String.Concat [Hoek.parse_content_type content_type; "\n"])
+  let h = Hash.mk' algo.DotNetString (String.Concat ["hawk."; header_version; ".payload\n" ])
+  Hash.update' h (String.Concat [Hoek.parse_content_type content_type; "\n"])
   h
 
 let calc_payload_hash (payload : _ option) (algo : Algo) (content_type : _ option) =
   let hash = init_payload_hash algo content_type
-  payload |> Option.or_default "" |> Hash.update hash
-  "\n" |> Hash.update_final hash |> Convert.ToBase64String
+  payload |> Option.or_default [||] |> Hash.update hash
+  "\n" |> Hash.update_final' hash
+
+let calc_payload_hash' (payload : _ option) algo content_type =
+  calc_payload_hash payload algo content_type
+  |> Convert.ToBase64String
 
 /// Create a base64 encoded hmac signature of a UTF-8 encoding of the concatenated strings,
 /// i.e. base64(hmac(K, body))

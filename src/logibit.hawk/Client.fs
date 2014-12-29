@@ -20,8 +20,8 @@ type ClientOptions =
     content_type     : string option
     /// Application specific data sent via the ext attribute
     ext              : string option
-    /// string for body hash generation (ignored if hash provided)
-    payload          : string option
+    /// payload for body hash generation (ignored if hash provided)
+    payload          : byte[] option
     /// Pre-calculated payload hash, otherwise calculates the hash automatically
     hash             : string option
     // Time offset to sync with server time (ignored if timestamp provided)
@@ -103,9 +103,9 @@ let header (uri  : Uri)
       match pars.hash with
       | Some h -> Some h
       | None when pars.payload.IsSome ->
-        Crypto.calc_payload_hash pars.payload
-                                 pars.credentials.algorithm
-                                 pars.content_type
+        Crypto.calc_payload_hash' pars.payload
+                                  pars.credentials.algorithm
+                                  pars.content_type
         |> Some
       | _ -> None
     let data =

@@ -14,12 +14,6 @@ open logibit.hawk.Client
 open logibit.hawk.Tests.Shared
 open logibit.hawk.Server
 
-module UTF8 =
-  open System.Text
-
-  let bytes (s : string) =
-    Encoding.UTF8.GetBytes s
-
 [<Tests>]
 let util_tests =
   let sample = "2014-05-06T04:22:56+0200"
@@ -92,7 +86,8 @@ let server =
         authorisation = header
         payload       = None
         host          = None
-        port          = None }
+        port          = None
+        content_type  = None }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
@@ -108,7 +103,7 @@ let server =
           timestamp        = uint64 timestamp
           localtime_offset = None
           nonce            = Some "Ygvqdz"
-          payload          = Some "something to write about"
+          payload          = Some (UTF8.bytes "something to write about")
           hash             = None
           content_type     = Some "text/plain"
           app              = None
@@ -121,7 +116,8 @@ let server =
         authorisation = client_data.header
         payload       = Some (UTF8.bytes "something to write about")
         host          = None
-        port          = None }
+        port          = None
+        content_type  = Some "text/plain" }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
@@ -135,7 +131,8 @@ let server =
         authorisation = header
         payload       = None
         host          = None
-        port          = None }
+        port          = None
+        content_type  = None }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
@@ -149,7 +146,8 @@ let server =
         authorisation = header
         payload       = None
         host          = Some "example.com"
-        port          = None }
+        port          = None
+        content_type  = None }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
@@ -163,7 +161,8 @@ let server =
         authorisation = header
         payload       = None
         host          = Some "example.com"
-        port          = Some 8080us }
+        port          = Some 8080us
+        content_type  = None }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
@@ -179,9 +178,49 @@ let server =
         authorisation = header
         payload       = None
         host          = None
-        port          = None }
+        port          = None
+        content_type  = None }
       |> authenticate settings
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
+
+    testCase "errors on missing hash" <| fun _ ->
+      let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
+                   "mac=\"m8r1rHbXN6NgO+KIIhjO7sFRyd78RNGVUwehe8Cp2dU=\", ext=\"some-app-data\""
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
+        authorisation = header
+        payload       = Some (UTF8.bytes "body")
+        host          = None
+        port          = None
+        content_type  = None }
+      |> authenticate settings
+      |> ensure_err
+      |> function
+      | MissingAttribute a ->
+        Assert.Equal("hash attr", "hash", a)
+      | err ->
+        Tests.failtestf "expected MissingAttribute(hash) but got '%A'" err
+
+    testCase "errors on a stale timestamp" <| fun _ ->
+      let expected_delta = Duration.FromSeconds 9L
+      let header = "Hawk id=\"123456\", ts=\"1362337299\", nonce=\"UzmxSs\", ext=\"some-app-data\", " +
+                   "mac=\"wnNUxchvvryMH2RxckTdZ/gY3ijzvccx4keVvELC61w=\""
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8080/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = None
+        port          = None
+        content_type  = None }
+      |> authenticate settings
+      |> ensure_err
+      |> function
+      | StaleTimestamp delta ->
+        Assert.Equal("stale timestamp", expected_delta, delta)
+      | err ->
+        Tests.failtestf "expected 'StaleTimestamp \"%A\"' but got '%A'"
+                        expected_delta err
+
     ]

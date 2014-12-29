@@ -23,11 +23,12 @@ type UserId = string
 type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
 
 type AuthError =
-  | RequiredAttribute of name:string
+  | MissingAttribute of name:string
   | InvalidAttribute of name:string * message:string
   | CredsError of CredsError
-  | StaleTimestamp
   | BadMac of header_given:string * calculated:string
+  | BadPayloadHash of hash_given:string * calculated:string
+  | StaleTimestamp of delta:Duration
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
@@ -56,6 +57,10 @@ type Req =
     /// passing it the credentials and attributes.hash returned in the
     /// authenticate callback.
     payload       : byte [] option
+
+    /// Optional contenet type of the payload. You should only set this
+    /// if you have a payload.
+    content_type  : string option
 
     /// Optional host name override (from uri) - useful if your web server
     /// is behind a proxy and you can't easily feed a 'public' URI to the
@@ -106,7 +111,7 @@ module internal Validation =
       >>@ to_auth_err key
 
     | None ->
-      Choice2Of2 (RequiredAttribute key)
+      Choice2Of2 (MissingAttribute key)
 
   let opt_attr
     (m : Map<_, _>)
@@ -125,6 +130,29 @@ module internal Validation =
 
     | None ->
       Choice.lift w
+
+  let validate_header req attrs cs =
+    let calc_mac =
+      FullAuth.from_hawk_attrs (fst cs) req.host req.port attrs
+      |> Crypto.calc_mac "header"
+    if String.eq_ord_cnst_time calc_mac attrs.mac then
+      Choice1Of2 (attrs, cs)
+    else
+      Choice2Of2 (BadMac (attrs.mac, calc_mac))
+
+  let validate_payload req (attrs : HawkAttributes) cs =
+    match req.payload with
+    | None ->
+      Choice1Of2 (attrs, cs)
+    | Some payload ->
+      let creds : Credentials = fst cs
+      Choice.of_option (MissingAttribute "hash") attrs.hash
+      >>= fun attrs_hash ->
+        let calc_hash = Crypto.calc_payload_hash' req.payload creds.algorithm req.content_type
+        if String.eq_ord_cnst_time calc_hash attrs_hash then
+          Choice1Of2 (attrs, cs)
+        else
+          Choice2Of2 (BadPayloadHash(attrs_hash, calc_hash))
 
 /// Parse the header into key-value pairs in the form
 /// of a `Map<string, string>`.
@@ -156,13 +184,10 @@ let authenticate (s : Settings<'a>)
   >>= Validation.opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
   >>- Writer.``return``
   >>= fun attrs ->
-    s.creds_repo attrs.id
-    >>@ AuthError.from_creds_error
-    >>- fun cs -> attrs, cs
-  >>= fun (attrs, (creds, a)) ->
-    let auth = attrs |> FullAuth.from_hawk_attrs creds req.host req.port
-    let calc_mac = Crypto.calc_mac "header" auth
-    if String.eq_ord_cnst_time calc_mac attrs.mac then
-      Choice1Of2 (creds, a)
-    else
-      Choice2Of2 (BadMac (attrs.mac, calc_mac))
+    (s.creds_repo attrs.id
+     >>@ AuthError.from_creds_error
+     >>- fun cs -> attrs, cs
+    )
+  >>= fun x -> x ||> Validation.validate_header req
+  >>= fun x -> x ||> Validation.validate_payload req
+  >>- snd // only return credentials

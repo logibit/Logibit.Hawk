@@ -113,21 +113,28 @@ module Hash =
   open System.Text
   open System.Security.Cryptography
   
-  let update (h : HashAlgorithm) (s : string) =
-    let bytes = Encoding.UTF8.GetBytes s
+  let update (h : HashAlgorithm) (bytes : byte[]) =
     h.TransformBlock (bytes, 0, bytes.Length, bytes, 0) |> ignore
 
-  let update_final (h : HashAlgorithm) (s : string) =
-    let bytes = Encoding.UTF8.GetBytes s
+  let update' h (s : string) =
+    update h (UTF8.bytes s)
+
+  let update_final (h : HashAlgorithm) (bytes : byte[]) =
     h.TransformFinalBlock(bytes, 0, bytes.Length) |> ignore
     h.Hash
+
+  let update_final' (h : HashAlgorithm) (s : string) =
+    update_final h (UTF8.bytes s)
 
   let finalise (h : HashAlgorithm) =
     use hh = h
     h.TransformFinalBlock([||], 0, 0) |> ignore
     h.Hash
 
-  let mk (algo : string) (s : string) =
+  let mk (algo : string) (bytes : byte[]) =
     let h = HashAlgorithm.Create algo
-    update h s
+    update h bytes
     h
+
+  let mk' (algo : string) (s : string) =
+    mk algo (UTF8.bytes s)
