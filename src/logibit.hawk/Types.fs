@@ -68,68 +68,7 @@ module Credentials =
     (fun x -> x.id),
     fun v x -> { x with algorithm = v }
 
-/// A structure that represents the fully calculated hawk request data structure
-type FullAuth =
-  { credentials  : Credentials
-    timestamp    : uint64
-    nonce        : string
-    ``method``   : HttpMethod
-    resource     : string
-    host         : string
-    port         : uint16
-    /// The hash is optional in the method that only calculate MACs, but when it
-    /// is used from the Client#header function, it's a required field.
-    hash         : string option
-    ext          : string option
-    app          : string option
-    dlg          : string option }
-
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module FullAuth =
-
-  let credentials_ =
-    (fun x -> x.credentials),
-    fun v x -> { x with credentials = v }
-
-  let timestamp_ =
-    (fun x -> x.timestamp),
-    fun v x -> { x with timestamp = v }
-
-  let nonce_ =
-    (fun x -> x.nonce),
-    fun v x -> { x with nonce = v }
-
-  let method_ =
-    (fun x -> x.``method``),
-    fun v x -> { x with ``method`` = v }
-
-  let resource_ =
-    (fun x -> x.resource),
-    fun v x -> { x with resource = v }
-
-  let host_ =
-    (fun x -> x.host),
-    fun v x -> { x with host = v }
-
-  let port_ =
-    (fun x -> x.port),
-    fun v x -> { x with port = v }
-
-  let hash_ =
-    (fun x -> x.hash),
-    fun v x -> { x with hash = v }
-
-  let ext_ =
-    (fun x -> x.ext),
-    fun v x -> { x with ext = v }
-
-  let app_ =
-    (fun x -> x.app),
-    fun v x -> { x with app = v }
-
-  let dlg_ =
-    (fun x -> x.dlg),
-    fun v x -> { x with dlg = v }
+type Port = uint16
 
 type HawkAttributes =
   { ``method`` : HttpMethod
@@ -200,3 +139,79 @@ module HawkAttributes =
   let dlg_ =
     (fun x -> x.dlg),
     fun v (x : HawkAttributes) -> { x with dlg = v }
+
+/// A structure that represents the fully calculated hawk request data structure
+type FullAuth =
+  { credentials  : Credentials
+    timestamp    : uint64
+    nonce        : string
+    ``method``   : HttpMethod
+    resource     : string
+    host         : string
+    port         : Port
+    /// The hash is optional in the method that only calculate MACs, but when it
+    /// is used from the Client#header function, it's a required field.
+    hash         : string option
+    ext          : string option
+    app          : string option
+    dlg          : string option }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module FullAuth =
+
+  let credentials_ =
+    (fun x -> x.credentials),
+    fun v (x : FullAuth) -> { x with credentials = v }
+
+  let timestamp_ =
+    (fun x -> x.timestamp),
+    fun v (x : FullAuth) -> { x with timestamp = v }
+
+  let nonce_ =
+    (fun x -> x.nonce),
+    fun v (x : FullAuth) -> { x with nonce = v }
+
+  let method_ =
+    (fun x -> x.``method``),
+    fun v (x : FullAuth) -> { x with ``method`` = v }
+
+  let resource_ =
+    (fun x -> x.resource),
+    fun v (x : FullAuth) -> { x with resource = v }
+
+  let host_ =
+    (fun x -> x.host),
+    fun v (x : FullAuth) -> { x with host = v }
+
+  let port_ =
+    (fun x -> x.port),
+    fun v (x : FullAuth) -> { x with port = v }
+
+  let hash_ =
+    (fun x -> x.hash),
+    fun v (x : FullAuth) -> { x with hash = v }
+
+  let ext_ =
+    (fun x -> x.ext),
+    fun v (x : FullAuth) -> { x with ext = v }
+
+  let app_ =
+    (fun x -> x.app),
+    fun v (x : FullAuth) -> { x with app = v }
+
+  let dlg_ =
+    (fun x -> x.dlg),
+    fun v (x : FullAuth) -> { x with dlg = v }
+
+  let from_hawk_attrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
+    { credentials  = creds
+      timestamp    = uint64 (a.ts.Ticks / (NodaConstants.TicksPerSecond))
+      nonce        = a.nonce
+      ``method``   = a.``method``
+      resource     = a.uri.AbsolutePath
+      host         = host |> Option.or_default a.uri.Host
+      port         = port |> Option.or_default (uint16 a.uri.Port)
+      hash         = a.hash
+      ext          = a.ext
+      app          = a.app
+      dlg          = a.dlg }

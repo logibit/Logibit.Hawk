@@ -63,9 +63,10 @@ let server =
         member x.Now = Instant(123456789L) }
 
   let s =
-    { clock = clock
-      allowed_offset = Duration.FromMilliseconds 1L
-      creds_repo     = fun id ->
+    { clock              = clock
+      allowed_clock_skew = Duration.FromMilliseconds 1L
+      local_clock_offset = 0u
+      creds_repo         = fun id ->
         ({ id = id
            key = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
            algorithm = if id = "1" then SHA1 else SHA256 },
@@ -74,10 +75,14 @@ let server =
 
   testList "#authenticate" [
     testCase "parses a valid authentication header (sha1)" <| fun _ ->
-      { ``method`` = GET
-        uri        = Uri("http://example.com:8080/resource/4?filter=a")
-        authorisation = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\"" }
+      { ``method``    = GET
+        uri           = Uri("http://example.com:8080/resource/4?filter=a")
+        authorisation = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+        payload       = None
+        host          = None
+        port          = None }
       |> authenticate s
       |> ensure_value
       |> ignore
+
     ]
