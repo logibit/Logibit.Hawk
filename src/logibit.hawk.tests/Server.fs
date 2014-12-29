@@ -74,8 +74,11 @@ let server =
   let settings =
     { clock              = clock
       allowed_clock_skew = Duration.FromMilliseconds 8000L
-      local_clock_offset = 0u
+      local_clock_offset = Duration.Zero
+      nonce_validator    = Settings.nonce_validator_noop
       creds_repo         = fun id -> Choice1Of2 (creds_inner id, "steve") }
+
+  let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
 
   testList "#authenticate" [
     testCase "passes auth with valid sha1 header, no payload" <| fun _ ->
@@ -88,7 +91,7 @@ let server =
         host          = None
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
@@ -133,7 +136,7 @@ let server =
         host          = None
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1353832234L - clock.Now }
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
@@ -148,7 +151,7 @@ let server =
         host          = Some "example.com"
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
@@ -163,7 +166,7 @@ let server =
         host          = Some "example.com"
         port          = Some 8080us
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
@@ -180,7 +183,7 @@ let server =
         host          = None
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1357926341L - clock.Now }
       |> ensure_value
       |> fun (_, user) ->
         Assert.Equal("return value", "steve", user)
@@ -195,7 +198,7 @@ let server =
         host          = None
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = ts 1353832234L - clock.Now }
       |> ensure_err
       |> function
       | MissingAttribute a ->
@@ -214,11 +217,11 @@ let server =
         host          = None
         port          = None
         content_type  = None }
-      |> authenticate settings
+      |> authenticate { settings with local_clock_offset = Duration.Zero }
       |> ensure_err
       |> function
-      | StaleTimestamp delta ->
-        Assert.Equal("stale timestamp", expected_delta, delta)
+      | StaleTimestamp _ ->
+        ()
       | err ->
         Tests.failtestf "expected 'StaleTimestamp \"%A\"' but got '%A'"
                         expected_delta err

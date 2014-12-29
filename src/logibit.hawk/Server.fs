@@ -14,6 +14,8 @@ type CredsError =
   | UnknownAlgo of algo:Algo
   | Other of string
 
+type NonceError = NonceError of string
+
 type UserId = string
 
 /// A credential repository maps a UserId to a
@@ -22,19 +24,36 @@ type UserId = string
 /// the correct error in response.
 type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
 
+/// Errors that can come from a validation pass of the Hawk header.
 type AuthError =
+  /// A required Hawk attribute is missing from the request header
   | MissingAttribute of name:string
+  /// A Hawk attribute cannot be turned into something the computer
+  /// understands
   | InvalidAttribute of name:string * message:string
+  /// There was a problem when validating the credentials of the principal
   | CredsError of CredsError
+  /// The calculated HMAC value for the request (and/or payload) doesn't
+  /// match the given mac value
   | BadMac of header_given:string * calculated:string
+  /// The hash of the payload does not match the given hash.
   | BadPayloadHash of hash_given:string * calculated:string
-  | StaleTimestamp of delta:Duration
+  /// The nonce was invalid
+  | NonceError of NonceError
+  /// The request has been too delayed to be accepted or has been replayed
+  /// and provides information about the timestamp at the server as well
+  /// as the local offset the library was counting on
+  | StaleTimestamp of ts_given:Instant * ts_server:Instant * offset_server : Duration
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
   /// Use constructor as function
   let from_creds_error = CredsError
 
+  /// Use constructor as function
+  let from_nonce_error = NonceError
+
+/// The pieces of the request that the `authenticate` method cares about.
 type Req =
   { /// Required method for the request
     ``method``    : HttpMethod
@@ -82,15 +101,24 @@ type Settings<'a> =
     /// means actual allowed window is double the number of seconds.
     allowed_clock_skew : Duration
 
-    /// Local clock time offset express in a number of
-    /// milliseconds (positive or negative). Defaults to 0.
-    local_clock_offset : uint32
+    /// Local clock time offset which can be both +/-. Defaults to 0 s.
+    local_clock_offset : Duration
+
+    /// An extra nonce validator - allows you to keep track of the last,
+    /// say, 1000 nonces, to be safe against replay attacks.
+    nonce_validator    : string -> Choice<unit, NonceError>
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    creds_repo         : CredsRepo<'a>
-    }
+    creds_repo         : CredsRepo<'a> }
 
+module Settings =
+
+  /// This nonce validator lets all nonces through, boo yah!
+  let nonce_validator_noop = fun _ -> Choice1Of2 ()
+
+/// Internal validation module which takes care of the different
+/// aspects of validating the request.
 module internal Validation =
   open Parse
 
@@ -131,7 +159,12 @@ module internal Validation =
     | None ->
       Choice.lift w
 
-  let validate_header req attrs cs =
+  let validate_credentials creds_repo req attrs =
+    creds_repo attrs.id
+    >>@ AuthError.from_creds_error
+    >>- fun cs -> attrs, cs
+
+  let validate_header req (attrs, cs) =
     let calc_mac =
       FullAuth.from_hawk_attrs (fst cs) req.host req.port attrs
       |> Crypto.calc_mac "header"
@@ -140,7 +173,7 @@ module internal Validation =
     else
       Choice2Of2 (BadMac (attrs.mac, calc_mac))
 
-  let validate_payload req (attrs : HawkAttributes) cs =
+  let validate_payload req ((attrs : HawkAttributes), cs) =
     match req.payload with
     | None ->
       Choice1Of2 (attrs, cs)
@@ -153,6 +186,20 @@ module internal Validation =
           Choice1Of2 (attrs, cs)
         else
           Choice2Of2 (BadPayloadHash(attrs_hash, calc_hash))
+
+  let validate_nonce validator ((attrs : HawkAttributes), cs) =
+    validator attrs.nonce
+    >>- fun _ -> attrs, cs
+    >>@ AuthError.from_nonce_error
+
+  let validate_timestamp (now : Instant)
+                         (allowed_ts_skew : Duration)
+                         local_offset // for err only
+                         (({ ts = given_ts } as attrs), cs) =
+    if given_ts - now <= allowed_ts_skew then
+      Choice1Of2 (attrs, cs)
+    else
+      Choice2Of2 (StaleTimestamp (given_ts, now, local_offset))
 
 /// Parse the header into key-value pairs in the form
 /// of a `Map<string, string>`.
@@ -171,8 +218,10 @@ let authenticate (s : Settings<'a>)
                  (req : Req)
                  : Choice<Credentials * 'a, AuthError> =
 
-  let now = s.clock.Now // before computing
+  let now = s.clock.Now + s.local_clock_offset // before computing
+  let map_credentials = snd
   let header = parse_header req.authorisation // parse header, unknown header values so far
+
   Writer.lift (HawkAttributes.mk req.``method`` req.uri)
   >>~ Validation.req_attr header "id" (Parse.id, HawkAttributes.id_)
   >>= Validation.req_attr header "ts" (Parse.unix_sec_instant, HawkAttributes.ts_)
@@ -183,11 +232,9 @@ let authenticate (s : Settings<'a>)
   >>= Validation.opt_attr header "app" (Parse.id, HawkAttributes.app_)
   >>= Validation.opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
   >>- Writer.``return``
-  >>= fun attrs ->
-    (s.creds_repo attrs.id
-     >>@ AuthError.from_creds_error
-     >>- fun cs -> attrs, cs
-    )
-  >>= fun x -> x ||> Validation.validate_header req
-  >>= fun x -> x ||> Validation.validate_payload req
-  >>- snd // only return credentials
+  >>= Validation.validate_credentials s.creds_repo req
+  >>= Validation.validate_header req
+  >>= Validation.validate_payload req
+  >>= Validation.validate_nonce s.nonce_validator 
+  >>= Validation.validate_timestamp now s.allowed_clock_skew s.local_clock_offset
+  >>- map_credentials

@@ -143,6 +143,7 @@ module HawkAttributes =
 /// A structure that represents the fully calculated hawk request data structure
 type FullAuth =
   { credentials  : Credentials
+    /// The # seconds since unix epoch
     timestamp    : uint64
     nonce        : string
     ``method``   : HttpMethod
