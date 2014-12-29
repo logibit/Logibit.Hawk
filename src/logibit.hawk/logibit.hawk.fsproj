@@ -47,6 +47,7 @@
     <Reference Include="Aether">
       <HintPath>..\packages\Aether.5.1\lib\net40\Aether.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.Caching" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Prelude.fs" />

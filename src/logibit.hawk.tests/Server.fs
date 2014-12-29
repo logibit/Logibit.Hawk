@@ -220,10 +220,27 @@ let server =
       |> authenticate { settings with local_clock_offset = Duration.Zero }
       |> ensure_err
       |> function
-      | StaleTimestamp _ ->
-        ()
-      | err ->
-        Tests.failtestf "expected 'StaleTimestamp \"%A\"' but got '%A'"
-                        expected_delta err
+      | StaleTimestamp _ -> ()
+      | err -> Tests.failtest "expected 'StaleTimestamp _'"
 
+    testCase "errors on a replay" <| fun _ ->
+      let settings' =
+        { settings with
+            nonce_validator = Settings.nonce_validator_mem
+            local_clock_offset = ts 1353832234L - clock.Now }
+      let header = "Hawk id=\"123\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
+                   "mac=\"bXx7a7p1h9QYQNZ8x7QhvDQym8ACgab4m3lVSFn4DBw=\", ext=\"hello\""
+      let data =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          content_type  = None }
+      
+      authenticate settings' data |> ensure_value |> ignore
+      authenticate settings' data |> ensure_err
+      |> function
+      | _ -> ()
     ]

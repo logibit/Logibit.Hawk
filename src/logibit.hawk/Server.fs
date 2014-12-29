@@ -14,7 +14,9 @@ type CredsError =
   | UnknownAlgo of algo:Algo
   | Other of string
 
-type NonceError = NonceError of string
+type NonceError =
+  | AlreadySeen
+  | NonceError of string
 
 type UserId = string
 
@@ -106,16 +108,29 @@ type Settings<'a> =
 
     /// An extra nonce validator - allows you to keep track of the last,
     /// say, 1000 nonces, to be safe against replay attacks.
-    nonce_validator    : string -> Choice<unit, NonceError>
+    nonce_validator    : string * Instant -> Choice<unit, NonceError>
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
     creds_repo         : CredsRepo<'a> }
 
 module Settings =
+  open System.Collections.Concurrent
+  open System.Runtime.Caching
 
   /// This nonce validator lets all nonces through, boo yah!
   let nonce_validator_noop = fun _ -> Choice1Of2 ()
+
+  // TODO: parametise the cache
+  // TODO: parametise the clock
+  let nonce_validator_mem =
+    let cache = MemoryCache.Default
+    fun (nonce, ts : Instant) ->
+      let in_20_min = DateTimeOffset.UtcNow.AddMinutes(20.)
+      // returns: if a cache entry with the same key exists, the existing cache entry; otherwise, null.
+      match cache.AddOrGetExisting(nonce, ts, in_20_min) |> box with
+      | null -> Choice1Of2 ()
+      | last_seen -> Choice2Of2 AlreadySeen
 
 /// Internal validation module which takes care of the different
 /// aspects of validating the request.
@@ -188,7 +203,7 @@ module internal Validation =
           Choice2Of2 (BadPayloadHash(attrs_hash, calc_hash))
 
   let validate_nonce validator ((attrs : HawkAttributes), cs) =
-    validator attrs.nonce
+    validator (attrs.nonce, attrs.ts)
     >>- fun _ -> attrs, cs
     >>@ AuthError.from_nonce_error
 
