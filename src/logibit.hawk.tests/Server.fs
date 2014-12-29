@@ -14,6 +14,12 @@ open logibit.hawk.Client
 open logibit.hawk.Tests.Shared
 open logibit.hawk.Server
 
+module UTF8 =
+  open System.Text
+
+  let bytes (s : string) =
+    Encoding.UTF8.GetBytes s
+
 [<Tests>]
 let util_tests =
   let sample = "2014-05-06T04:22:56+0200"
@@ -78,10 +84,19 @@ let server =
       creds_repo         = fun id -> Choice1Of2 (creds_inner id, "steve") }
 
   testList "#authenticate" [
-    testCase "passes auth with valid sha1 header" <| fun _ ->
-      let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+    testCase "passes auth with valid sha1 header, no payload" <| fun _ ->
+      let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
+                   "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8080/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = None
+        port          = None }
+      |> authenticate settings
+      |> ensure_value
+      |> ignore
       ()
-
 
     testCase "passes auth valid Client.header value" <| fun _ ->
       // same as:
@@ -104,7 +119,7 @@ let server =
       { ``method``    = POST
         uri           = uri
         authorisation = client_data.header
-        payload       = Some (Encoding.UTF8.GetBytes "something to write about")
+        payload       = Some (UTF8.bytes "something to write about")
         host          = None
         port          = None }
       |> authenticate settings

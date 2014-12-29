@@ -46,6 +46,12 @@ module Culture =
 
   let invariant = CultureInfo.InvariantCulture
 
+module UTF8 =
+  open System.Text
+
+  let bytes (s : string) =
+    Encoding.UTF8.GetBytes s
+
 type Writer<'a> =
   { state : 'a }
 
