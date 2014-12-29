@@ -243,4 +243,19 @@ let server =
       authenticate settings' data |> ensure_err
       |> function
       | _ -> ()
+
+    testCase "errors on an invalid authentication header: wrong scheme" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an invalid authentication header: no scheme" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an missing authorization header" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an missing host header" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an missing req (id, ts, nonce, mac) authorization attribute" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an unknown authorization attribute" <| fun _ ->
+      Tests.skiptest "to do"
+    testCase "errors on an bad authorization header format" <| fun _ ->
+      Tests.skiptest "to do"
     ]
