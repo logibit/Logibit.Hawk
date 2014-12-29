@@ -1,5 +1,5 @@
 ﻿[<AutoOpen>]
-module logibit.hawk.Prelude
+module internal logibit.hawk.Prelude
 
 module Option =
 

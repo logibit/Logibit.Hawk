@@ -1,6 +1,7 @@
 ﻿module logibit.hawk.Tests.Server
 
 open System
+open System.Text
 
 open Fuchu
 
@@ -8,6 +9,7 @@ open NodaTime
 
 open logibit.hawk
 open logibit.hawk.Types
+open logibit.hawk.Client
 
 open logibit.hawk.Tests.Shared
 open logibit.hawk.Server
@@ -57,32 +59,55 @@ let authorization_header =
 
 [<Tests>]
 let server =
- 
+
+  let timestamp = 123456789L
+
   let clock =
     { new IClock with
-        member x.Now = Instant(123456789L) }
+        member x.Now = Instant(timestamp * NodaConstants.TicksPerSecond) }
 
-  let s =
+  let creds_inner id =
+    { id        = id
+      key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
+      algorithm = if id = "1" then SHA1 else SHA256 }
+
+  let settings =
     { clock              = clock
-      allowed_clock_skew = Duration.FromMilliseconds 1L
+      allowed_clock_skew = Duration.FromMilliseconds 8000L
       local_clock_offset = 0u
-      creds_repo         = fun id ->
-        ({ id = id
-           key = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
-           algorithm = if id = "1" then SHA1 else SHA256 },
-         "steve")
-        |> Choice1Of2 }
+      creds_repo         = fun id -> Choice1Of2 (creds_inner id, "steve") }
 
   testList "#authenticate" [
-    testCase "parses a valid authentication header (sha1)" <| fun _ ->
-      { ``method``    = GET
-        uri           = Uri("http://example.com:8080/resource/4?filter=a")
-        authorisation = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-        payload       = None
+    testCase "passes auth with valid sha1 header" <| fun _ ->
+      let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+      ()
+
+
+    testCase "passes auth valid Client.header value" <| fun _ ->
+      // same as:
+      // Client/#header/returns a valid authorization header (sha256, content type)
+      let uri = Uri "https://example.net/somewhere/over/the/rainbow"
+      let client_data =
+        { credentials      = creds_inner "2"
+          ext              = Some "Bazinga!"
+          timestamp        = uint64 timestamp
+          localtime_offset = None
+          nonce            = Some "Ygvqdz"
+          payload          = Some "something to write about"
+          hash             = None
+          content_type     = Some "text/plain"
+          app              = None
+          dlg              = None }
+        |> Client.header uri POST
+        |> ensure_value
+
+      { ``method``    = POST
+        uri           = uri
+        authorisation = client_data.header
+        payload       = Some (Encoding.UTF8.GetBytes "something to write about")
         host          = None
         port          = None }
-      |> authenticate s
+      |> authenticate settings
       |> ensure_value
       |> ignore
-
     ]

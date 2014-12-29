@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Prelude.fs" />
+    <Compile Include="Logging.fs" />
     <Compile Include="Random.fs" />
     <Compile Include="Parse.fs" />
     <Compile Include="Types.fs" />

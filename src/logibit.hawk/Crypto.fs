@@ -40,8 +40,8 @@ let gen_norm_str (``type`` : string) (opts : FullAuth) =
       ]
 
 let init_payload_hash (algo : Algo) content_type =
-  let h = Hash.mk algo.DotNetString (sprintf "hawk.%s.payload\n" header_version)
-  Hash.update h (sprintf "%s\n" (Hoek.parse_content_type content_type))
+  let h = Hash.mk algo.DotNetString (String.Concat ["hawk."; header_version; ".payload\n" ])
+  Hash.update h (String.Concat [Hoek.parse_content_type content_type; "\n"])
   h
 
 let calc_payload_hash (payload : _ option) (algo : Algo) (content_type : _ option) =

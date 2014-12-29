@@ -70,7 +70,7 @@ type Req =
 /// Authentication settings
 type Settings<'a> =
   { /// The clock to use for getting the time.
-    clock        : IClock
+    clock              : IClock
 
     /// Number of seconds of permitted clock skew for incoming
     /// timestamps. Defaults to 60 seconds.  Provides a +/- skew which
@@ -83,7 +83,7 @@ type Settings<'a> =
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    creds_repo   : CredsRepo<'a>
+    creds_repo         : CredsRepo<'a>
     }
 
 module internal Validation =
@@ -142,6 +142,7 @@ let parse_header (header : string) =
 let authenticate (s : Settings<'a>)
                  (req : Req)
                  : Choice<Credentials * 'a, AuthError> =
+
   let now = s.clock.Now // before computing
   let header = parse_header req.authorisation // parse header, unknown header values so far
   Writer.lift (HawkAttributes.mk req.``method`` req.uri)
