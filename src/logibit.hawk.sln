@@ -1,6 +1,12 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{7B11D818-C87B-4943-867A-6CA34064B720}"
+	ProjectSection(SolutionItems) = preProject
+		..\paket.dependencies = ..\paket.dependencies
+		..\paket.lock = ..\paket.lock
+	EndProjectSection
+EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "logibit.hawk", "logibit.hawk\logibit.hawk.fsproj", "{3D94A484-8780-4267-9024-FFC5E44A971A}"
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "logibit.hawk.tests", "logibit.hawk.tests\logibit.hawk.tests.fsproj", "{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}"

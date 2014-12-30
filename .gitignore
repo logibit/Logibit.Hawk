@@ -9,3 +9,4 @@ AssemblyVersionInfo.cs
 AssemblyVersionInfo.fs
 AssemblyVersionInfo.vb
 packages/
+build/
