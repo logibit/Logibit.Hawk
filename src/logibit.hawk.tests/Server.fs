@@ -93,7 +93,7 @@ let server =
         content_type  = None }
       |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "passes auth valid Client.header value" <| fun _ ->
@@ -123,7 +123,7 @@ let server =
         content_type  = Some "text/plain" }
       |> authenticate settings
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "parses a valid authentication header (sha256)" <| fun _ ->
@@ -138,7 +138,7 @@ let server =
         content_type  = None }
       |> authenticate { settings with local_clock_offset = ts 1353832234L - clock.Now }
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "parses a valid authentication header (host override)" <| fun _ ->
@@ -153,7 +153,7 @@ let server =
         content_type  = None }
       |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "parses a valid authentication header (host port override)" <| fun _ ->
@@ -168,7 +168,7 @@ let server =
         content_type  = None }
       |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "parses a valid authentication header (POST with payload-hash, payload for later check)" <| fun _ ->
@@ -185,7 +185,7 @@ let server =
         content_type  = None }
       |> authenticate { settings with local_clock_offset = ts 1357926341L - clock.Now }
       |> ensure_value
-      |> fun (_, user) ->
+      |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
     testCase "errors on missing hash" <| fun _ ->
