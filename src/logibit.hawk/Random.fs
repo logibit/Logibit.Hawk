@@ -1,4 +1,4 @@
-﻿module logibit.hawk.Random
+﻿module internal logibit.hawk.Random
 
 open System
 open System.Security.Cryptography

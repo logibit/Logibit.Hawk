@@ -1,4 +1,4 @@
-﻿module logibit.hawk.Parse
+﻿module internal logibit.hawk.Parse
 
 open System
 open System.Globalization

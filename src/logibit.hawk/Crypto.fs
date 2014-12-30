@@ -39,7 +39,7 @@ let gen_norm_str (``type`` : string) (opts : FullAuth) =
         | Some dlg -> yield sprintf "%s\n" dlg
       ]
 
-let init_payload_hash (algo : Algo) content_type =
+let private init_payload_hash (algo : Algo) content_type =
   let h = Hash.mk' algo.DotNetString (String.Concat ["hawk."; header_version; ".payload\n" ])
   Hash.update' h (String.Concat [Hoek.parse_content_type content_type; "\n"])
   h

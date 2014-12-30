@@ -6,6 +6,15 @@ module Option =
   let or_default (defaults : 'a) (o : 'a option) =
     o |> Option.fold (fun s t -> t) defaults
 
+module Hoek =
+
+  let parse_content_type = function
+    | None -> ""
+    | Some (ct : string) -> ct.Split(';').[0].Trim().ToLowerInvariant()
+
+  let escape_header_attr attr =
+    attr // TODO
+
 module String =
 
   let to_lower_inv (str : string) =

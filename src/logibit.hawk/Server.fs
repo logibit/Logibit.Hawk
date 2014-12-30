@@ -16,7 +16,7 @@ type CredsError =
 
 type NonceError =
   | AlreadySeen
-  | NonceError of string
+  | Other of string
 
 type UserId = string
 
@@ -283,3 +283,8 @@ let authenticate_payload (payload : byte [])
                          (content_type : string) =
   let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
   String.eq_ord_cnst_time calc_hash given_hash
+
+// TODO: authenticate_payload_hash
+// TODO: header
+// TODO: authenticate_bewit
+// TODO: authenticate_message

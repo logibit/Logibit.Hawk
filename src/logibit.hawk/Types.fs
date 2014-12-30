@@ -4,29 +4,28 @@ open System
 
 open NodaTime
 
-module Hoek =
-
-  let parse_content_type = function
-    | None -> ""
-    | Some (ct : string) -> ct.Split(';').[0].Trim().ToLowerInvariant()
-
-  let escape_header_attr attr =
-    attr // TODO
-
 type HttpMethod =
   | GET
-  | POST
+  | HEAD
   | PUT
+  | POST
+  | TRACE
   | DELETE
   | PATCH
+  | CONNECT
+  | Other of string
 with
   override x.ToString () =
     match x with
     | GET -> "GET"
-    | POST -> "POST"
+    | HEAD -> "HEAD"
     | PUT -> "PUT"
+    | POST -> "POST"
+    | TRACE -> "TRACE"
     | DELETE -> "DELETE"
     | PATCH -> "PATCH"
+    | CONNECT -> "CONNECT"
+    | Other s -> s
 
 type Algo =
   | SHA1

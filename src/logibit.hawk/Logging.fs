@@ -1,4 +1,4 @@
-﻿module logibit.hawk.Logging
+﻿module internal logibit.hawk.Logging
 
 open System
 
