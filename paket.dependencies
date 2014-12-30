@@ -1,4 +1,4 @@
-source https://www.nuget.org/api/v2/
+source https://www.nuget.org/api/v2
 
 nuget Aether 5.1
 nuget FsCheck 1.0.4
@@ -8,3 +8,4 @@ nuget Fuchu.FsCheck 0.4.0.0
 nuget HawkNet 1.4.2.0
 nuget NodaTime 1.3.0
 nuget NuGet.CommandLine
+nuget Suave

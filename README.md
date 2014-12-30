@@ -12,8 +12,17 @@ Dependencies: { Aether, FSharp.Core, NodaTime }
 For all API methods implemented, the full test suite for those methods has also
 been translated.
 
+## Usage
+
+``` fsharp
+open logibit.hawk
+
+Server.authenticate ...
+```
+
 ## Changelog
 
+v0.2: Hawk.Suave nuget
 v0.1: Initial Release
 
 ## API
@@ -21,26 +30,25 @@ v0.1: Initial Release
 This is the public API of the library. It mimics the API of Hawk.js - the
 reference implementation.
 
-### Client module
+### `logibit.hawk.Client`
 
 These functions are available, checked functions are implemented
 
  - [x] header - generate a request header for server to authenticate
- - [ ] authenticate - test that server response is authentic
- - [ ] get_bewit - generate a GET-table URI from an input uri
+ - [ ] authenticate - test that server response is authentic, see
+   [Response Payload Validation](https://github.com/hueniverse/hawk#response-payload-validation).
+ - [ ] bewet - generate a GET-table URI from an input uri
  - [ ] message - generate an authorisation string for a message
 
-### Server module
-
-Currently the server module is implemented enough for you to do server-side
-authentication with it.
+### `logibit.hawk.Server`
 
  - [x] authenticate - authenticate a request
  - [x] authenticate_payload - authenticate the payload of a request - assumes
-   you first have called `authenticate` to get credentials.
+   you first have called `authenticate` to get credentials. [Payload Validation](https://github.com/hueniverse/hawk#payload-validation)
  - [ ] authenticate_payload_hash
  - [ ] header - generate a server-header for the client to authenticate
- - [ ] authenticate_bewit - authenticate a client-supplied bewit
+ - [ ] authenticate_bewit - authenticate a client-supplied bewit, see [Bewit
+   Usage Example](https://github.com/hueniverse/hawk#bewit-usage-example).
  - [ ] authenticate_message - authenticate a client-supplied message
 
 #### `authenticate` details
@@ -60,16 +68,7 @@ granular enough.
  - [x] nonce reused -> `NonceError AlreadySeen`, with in-memory cache
  - [x] stale timestamp -> `StaleTimestamp`
 
-### Browser -> HttpClient module
-
-This would probably go under the `Client` module rather than be its own module.
-
- - [ ] header - generate a request header
- - [ ] bewit - generate a bewit for a uri
- - [ ] authenticate - validate server response
- - [ ] authenticate_timestamp - ensure timestamp is not expired
-
-### Crypto
+### `logibit.hawk.Crypto`
 
 The crypto module contains functions for validating the pieces of the request.
 
@@ -78,7 +77,7 @@ The crypto module contains functions for validating the pieces of the request.
  - [x] calc_payload_hash - calculates the payload hash from a given string
  - [x] calc_hmac - calculates the HMAC for a given string
 
-### Types
+### `logibit.hawk.Types`
 
 This module contains the shared types that you should use for interacting with
 the above modules.
@@ -94,6 +93,43 @@ This module also contains a module-per-type with lenses for that type. The
 lenses follow the same format as [Aether](https://github.com/xyncro/aether)
 recommends.
 
+### `logibit.hawk.Choice`
+
+This module adds some functions for composing Choice-s:
+
+ - `of_option : on_error:'b -> Choice<'a, 'b>` - convert an option to a choice
+ - `(>>=) : m:Choice<'a, 'b> -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` -
+   the normal bind operator, defined on choice
+ - `bind` - same as above
+ - `(>>!) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - the normal
+   bind operator, defined on the error case of choice
+ - `bind_2` - same as above
+ - `lift : a:'a -> Choice<'a, 'b>` - lift the value a into the choice
+ - `(>>~) : a:'a -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` - lift the value
+   a and bind f to the resulting choice -- useful for "start with this value and
+   then run this sequence of bind/map/map_2 on the choice values that flow".
+ - `lift_bind` - same as above
+ - `(>>-) : m:Choice<'a, 'b> -> f:('a -> 'c) -> Choice<'c, 'b>` - map the
+   first/successful choice value to another one (and another type, possibly).
+ - `map` - same as above
+ - `(>>@) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - map the
+   second/error choice value to another one (and another type, possibly).
+ - `map_2` - same as above
+
+#### Example
+
+From the source code, with annotations:
+
+``` fsharp
+let validate_nonce validator
+                   ((attrs : HawkAttributes), cs) :
+                   : Choice<_, AuthError> =
+  validator (attrs.nonce, attrs.ts) // => Choice<unit, NonceError>
+  >>- fun _ -> attrs, cs // => Choice<HawkAttributes * 'cs, NonceError>
+  >>@ AuthError.from_nonce_error
+  // => Choice<HawkAttributes * 'cs, AuthError>
+```
+
 ### Other APIs
 
 There are some modules that are currently internal as to avoid conflicting with
@@ -107,3 +143,4 @@ adding logging in the wrong place can open the code up to differential attacks.
 When the Logging abstraction is being used, it would be prudent to open up the
 required configuration point and possible use the interface in the
 `Settings<'a>` type. Until then, the module is internal.
+
