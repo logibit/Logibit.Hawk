@@ -48,6 +48,7 @@
     <Compile Include="AssemblyVersionInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Prelude.fs" />
+    <Compile Include="Choice.fs" />
     <Compile Include="Logging.fs" />
     <Compile Include="Random.fs" />
     <Compile Include="Parse.fs" />

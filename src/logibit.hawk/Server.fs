@@ -47,6 +47,7 @@ type AuthError =
   /// and provides information about the timestamp at the server as well
   /// as the local offset the library was counting on
   | StaleTimestamp of ts_given:Instant * ts_server:Instant * offset_server : Duration
+  | Other of string
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
@@ -244,10 +245,10 @@ let parse_header (header : string) =
 
 let authenticate (s : Settings<'a>)
                  (req : Req)
-                 : Choice<Credentials * 'a, AuthError> =
+                 : Choice<HawkAttributes * Credentials * 'a, AuthError> =
 
   let now = s.clock.Now + s.local_clock_offset // before computing
-  let map_credentials = snd
+  let map_result (a, (b, c)) = a, b, c
   parse_header req.authorisation // parse header, unknown header values so far
   >>= fun header ->
       Writer.lift (HawkAttributes.mk req.``method`` req.uri)
@@ -265,7 +266,7 @@ let authenticate (s : Settings<'a>)
       >>= validate_payload req
       >>= validate_nonce s.nonce_validator
       >>= validate_timestamp now s.allowed_clock_skew s.local_clock_offset
-      >>- map_credentials
+      >>- map_result
 
 /// Authenticate payload hash - used when payload cannot be provided
 /// during authenticate()

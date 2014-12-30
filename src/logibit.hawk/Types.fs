@@ -13,7 +13,7 @@ type HttpMethod =
   | DELETE
   | PATCH
   | CONNECT
-  | Other of string
+  | OPTIONS
 with
   override x.ToString () =
     match x with
@@ -25,7 +25,7 @@ with
     | DELETE -> "DELETE"
     | PATCH -> "PATCH"
     | CONNECT -> "CONNECT"
-    | Other s -> s
+    | OPTIONS -> "OPTIONS"
 
 type Algo =
   | SHA1
