@@ -266,3 +266,20 @@ let authenticate (s : Settings<'a>)
       >>= validate_nonce s.nonce_validator
       >>= validate_timestamp now s.allowed_clock_skew s.local_clock_offset
       >>- map_credentials
+
+/// Authenticate payload hash - used when payload cannot be provided
+/// during authenticate()
+///
+/// Arguments:
+/// - `payload` - the raw request payload
+/// - `creds` - credentials from the `authenticate` call
+/// - `given_hash` - expected hash of payload
+/// - `content_type` - actual request content type
+///
+/// Returns: true if the payload matches the given hash
+let authenticate_payload (payload : byte [])
+                         (creds : Credentials)
+                         (given_hash : string)
+                         (content_type : string) =
+  let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
+  String.eq_ord_cnst_time calc_hash given_hash

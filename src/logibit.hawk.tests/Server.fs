@@ -242,7 +242,8 @@ let server =
       authenticate settings' data |> ensure_value |> ignore
       authenticate settings' data |> ensure_err
       |> function
-      | _ -> ()
+      | NonceError AlreadySeen -> ()
+      | err -> Tests.failtestf "wrong error, expected NonceError AlreadySeen, got '%A'" err
 
     testCase "errors on an invalid authentication header: wrong scheme" <| fun _ ->
       let header = "Hawkish id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
