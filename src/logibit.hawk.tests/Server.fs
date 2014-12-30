@@ -35,7 +35,7 @@ let authorization_header =
       let sample = "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Ygvqdz\"" +
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazinga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
-      let values = Server.parse_header sample
+      let values = Server.parse_header sample |> ensure_value
       Assert.Equal("should have id", "123456", values.["id"])
       Assert.Equal("should have ts", "1353809207", values.["ts"])
       Assert.Equal("should have nonce", "Ygvqdz", values.["nonce"])
@@ -48,7 +48,7 @@ let authorization_header =
       let sample = "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Yg, vqdz\"" +
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazi,nga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
-      let values = Server.parse_header sample
+      let values = Server.parse_header sample |> ensure_value
       Assert.Equal("should have id", "123456", values.["id"])
       Assert.Equal("should have ts", "1353809207", values.["ts"])
       Assert.Equal("should have nonce", "Yg, vqdz", values.["nonce"])
@@ -245,17 +245,55 @@ let server =
       | _ -> ()
 
     testCase "errors on an invalid authentication header: wrong scheme" <| fun _ ->
-      Tests.skiptest "to do"
-    testCase "errors on an invalid authentication header: no scheme" <| fun _ ->
-      Tests.skiptest "to do"
+      let header = "Hawkish id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
+                   "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8080/resource/4?filter=a"
+        authorisation = header
+        payload       = None
+        host          = None
+        port          = None
+        content_type  = None }
+      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
+      |> ensure_err
+      |> function
+      | FaultyAuthorizationHeader _ -> ()
+      | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+
     testCase "errors on an missing authorization header" <| fun _ ->
-      Tests.skiptest "to do"
+      { ``method``    = GET
+        uri           = Uri "http://example.com:8080/resource/4?filter=a"
+        authorisation = ""
+        payload       = None
+        host          = None
+        port          = None
+        content_type  = None }
+      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
+      |> ensure_err
+      |> function
+      | FaultyAuthorizationHeader _ -> ()
+      | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+
     testCase "errors on an missing host header" <| fun _ ->
-      Tests.skiptest "to do"
+      Tests.skiptest "can't be tested, can't construct uri otherwise"
+
     testCase "errors on an missing req (id, ts, nonce, mac) authorization attribute" <| fun _ ->
-      Tests.skiptest "to do"
-    testCase "errors on an unknown authorization attribute" <| fun _ ->
-      Tests.skiptest "to do"
-    testCase "errors on an bad authorization header format" <| fun _ ->
-      Tests.skiptest "to do"
+      [ "id", "Hawk ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+        "ts", "Hawk id=\"1\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+        "nonce", "Hawk id=\"1\", ts=\"1353788437\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+        "mac", "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", ext=\"hello\"" ]
+      |> List.iter (fun (attr, header) ->
+          { ``method``    = GET
+            uri           = Uri "http://example.com:8080/resource/4?filter=a"
+            authorisation = header
+            payload       = None
+            host          = None
+            port          = None
+            content_type  = None }
+          |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
+          |> ensure_err
+          |> function
+          | MissingAttribute actual_attr -> Assert.Equal("attr", attr, actual_attr)
+          | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+          )
     ]

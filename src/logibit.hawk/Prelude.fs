@@ -24,6 +24,9 @@ module String =
 module Regex =
   open System.Text.RegularExpressions
 
+  let escape input =
+    Regex.Escape input
+
   let split pattern input =
     Regex.Split(input, pattern)
     |> List.ofArray

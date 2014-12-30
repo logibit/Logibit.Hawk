@@ -28,6 +28,7 @@ type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
 
 /// Errors that can come from a validation pass of the Hawk header.
 type AuthError =
+  | FaultyAuthorizationHeader of msg:string
   /// A required Hawk attribute is missing from the request header
   | MissingAttribute of name:string
   /// A Hawk attribute cannot be turned into something the computer
@@ -134,11 +135,17 @@ module Settings =
 
 /// Internal validation module which takes care of the different
 /// aspects of validating the request.
-module internal Validation =
+module internal Impl =
   open Parse
 
   let private to_auth_err key = function
     | ParseError msg -> InvalidAttribute (key, msg)
+
+  let starts_with (literal_prefix : string) (subject : string) =
+    if subject.StartsWith literal_prefix then
+      Choice1Of2 ()
+    else
+      Choice2Of2 (String.Concat [ "String doesn't start with; "; literal_prefix ])
 
   let req_attr
     (m : Map<_, 'v>)
@@ -179,7 +186,7 @@ module internal Validation =
     >>@ AuthError.from_creds_error
     >>- fun cs -> attrs, cs
 
-  let validate_header req (attrs, cs) =
+  let validate_mac req (attrs, cs) =
     let calc_mac =
       FullAuth.from_hawk_attrs (fst cs) req.host req.port attrs
       |> Crypto.calc_mac "header"
@@ -216,18 +223,24 @@ module internal Validation =
     else
       Choice2Of2 (StaleTimestamp (given_ts, now, local_offset))
 
+open Impl
+
 /// Parse the header into key-value pairs in the form
 /// of a `Map<string, string>`.
 let parse_header (header : string) =
   header
-  |> Regex.replace "\AHawk\s+" ""
-  |> Regex.split ",\s*"
-  |> List.fold (fun memo part ->
-    match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
-    | Some groups ->
-      memo |> Map.add groups.["k"].Value groups.["v"].Value
-    | None -> memo
-    ) Map.empty
+  >>~ starts_with "Hawk "
+  >>@ AuthError.FaultyAuthorizationHeader
+  >>- fun _ ->
+    (header
+    |> Regex.replace "\AHawk\s" ""
+    |> Regex.split ",\s*"
+    |> List.fold (fun memo part ->
+      match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
+      | Some groups ->
+        memo |> Map.add groups.["k"].Value groups.["v"].Value
+      | None -> memo
+      ) Map.empty)
 
 let authenticate (s : Settings<'a>)
                  (req : Req)
@@ -235,21 +248,21 @@ let authenticate (s : Settings<'a>)
 
   let now = s.clock.Now + s.local_clock_offset // before computing
   let map_credentials = snd
-  let header = parse_header req.authorisation // parse header, unknown header values so far
-
-  Writer.lift (HawkAttributes.mk req.``method`` req.uri)
-  >>~ Validation.req_attr header "id" (Parse.id, HawkAttributes.id_)
-  >>= Validation.req_attr header "ts" (Parse.unix_sec_instant, HawkAttributes.ts_)
-  >>= Validation.req_attr header "nonce" (Parse.id, HawkAttributes.nonce_)
-  >>= Validation.req_attr header "mac" (Parse.id, HawkAttributes.mac_) // TODO: parse byte[]?
-  >>= Validation.opt_attr header "hash" (Parse.id, HawkAttributes.hash_) // TODO: parse byte[]?
-  >>= Validation.opt_attr header "ext" (Parse.id, HawkAttributes.ext_)
-  >>= Validation.opt_attr header "app" (Parse.id, HawkAttributes.app_)
-  >>= Validation.opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
-  >>- Writer.``return``
-  >>= Validation.validate_credentials s.creds_repo req
-  >>= Validation.validate_header req
-  >>= Validation.validate_payload req
-  >>= Validation.validate_nonce s.nonce_validator 
-  >>= Validation.validate_timestamp now s.allowed_clock_skew s.local_clock_offset
-  >>- map_credentials
+  parse_header req.authorisation // parse header, unknown header values so far
+  >>= fun header ->
+      Writer.lift (HawkAttributes.mk req.``method`` req.uri)
+      >>~ req_attr header "id" (Parse.id, HawkAttributes.id_)
+      >>= req_attr header "ts" (Parse.unix_sec_instant, HawkAttributes.ts_)
+      >>= req_attr header "nonce" (Parse.id, HawkAttributes.nonce_)
+      >>= req_attr header "mac" (Parse.id, HawkAttributes.mac_) // TODO: parse byte[]?
+      >>= opt_attr header "hash" (Parse.id, HawkAttributes.hash_) // TODO: parse byte[]?
+      >>= opt_attr header "ext" (Parse.id, HawkAttributes.ext_)
+      >>= opt_attr header "app" (Parse.id, HawkAttributes.app_)
+      >>= opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
+      >>- Writer.``return``
+      >>= validate_credentials s.creds_repo req
+      >>= validate_mac req
+      >>= validate_payload req
+      >>= validate_nonce s.nonce_validator
+      >>= validate_timestamp now s.allowed_clock_skew s.local_clock_offset
+      >>- map_credentials
