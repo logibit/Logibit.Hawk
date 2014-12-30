@@ -45,7 +45,10 @@ authentication with it.
 
 #### `authenticate` details
 
-How strictly does the server validate its input? Compared to reference implementation.
+How strictly does the server validate its input? Compared to reference
+implementation. This part is important since it will make or break the usability
+of your api/app. Just throwing SecurityException for any of these is not
+granular enough.
 
  - [x] server cannot parse header -> `FaultyAuthorizationHeader`
  - [x] server cannot find Hawk scheme in header -> `FaultyAuthorizationHeader`
