@@ -40,7 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="AssemblyVersionInfo.fs" />
     <Compile Include="Shared.fs" />
     <Compile Include="Crypto.fs" />
     <Compile Include="Server.fs" />
@@ -148,14 +148,12 @@
   <ItemGroup>
     <Reference Include="Fuchu">
       <HintPath>..\..\packages\Fuchu\lib\Fuchu.dll</HintPath>
-      <Private>True</Private>
       <Paket>True</Paket>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Fuchu.FsCheck">
       <HintPath>..\..\packages\Fuchu.FsCheck\lib\Fuchu.FsCheck.dll</HintPath>
-      <Private>True</Private>
       <Paket>True</Paket>
     </Reference>
   </ItemGroup>
