@@ -12,6 +12,10 @@ Dependencies: { Aether, FSharp.Core, NodaTime }
 For all API methods implemented, the full test suite for those methods has also
 been translated.
 
+## Changelog
+
+v0.1: Initial Release
+
 ## API
 
 This is the public API of the library. It mimics the API of Hawk.js - the
@@ -66,10 +70,10 @@ This would probably go under the `Client` module rather than be its own module.
 
 The crypto module contains functions for validating the pieces of the request.
 
- - [ ] gen_norm_string - generate a normalised string for a request/auth data
- - [ ] calc_payload_hash - calculates the payload hash from a given byte[]
- - [ ] calc_payload_hash - calculates the payload hash from a given string
- - [ ] calc_hmac - calculates the HMAC for a given string
+ - [x] gen_norm_string - generate a normalised string for a request/auth data
+ - [x] calc_payload_hash - calculates the payload hash from a given byte[]
+ - [x] calc_payload_hash - calculates the payload hash from a given string
+ - [x] calc_hmac - calculates the HMAC for a given string
 
 ### Types
 
