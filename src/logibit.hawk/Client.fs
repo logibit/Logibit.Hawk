@@ -1,6 +1,8 @@
 ﻿module logibit.hawk.Client
 
 open System
+open System.Net.Http
+open System.Net.Http.Headers
 
 open NodaTime
 
@@ -13,7 +15,7 @@ type ClientOptions =
   { /// Credentials to the server
     credentials      : Credentials
     /// A pre-calculated timestamp
-    timestamp        : uint64
+    timestamp        : Instant
     /// A pre-generated nonce, or otherwise a random string is generated
     nonce            : string option
     /// Payload content-type (ignored if hash provided)
@@ -31,9 +33,25 @@ type ClientOptions =
     // Oz delegated-by application id. Iff app is Some _.
     dlg              : string option }
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ClientOptions =
+  let mk' creds =
+    { credentials      = creds
+      timestamp        = SystemClock.Instance.Now
+      nonce            = None
+      content_type     = None
+      ext              = None
+      payload          = None
+      hash             = None
+      localtime_offset = None
+      app              = None
+      dlg              = None }
+
 type HeaderData =
-  { /// Hawk header value
+  { /// Hawk header value ("Hawk " + x.parameter)
     header    : string
+    /// Hawk parameter (the stuff after "Hawk").
+    parameter : string
     /// The calculated auth data that was named 'artifacts' in original JS code.
     calc_data : FullAuth
     /// The calculated HMAC value for the header
@@ -65,27 +83,35 @@ module Validation =
                            : Choice<unit, HeaderError>  =
     validate_credentials pars.credentials
 
-let calc_header (credentials : Credentials) (artifacts : FullAuth) (mac : string) =
+let calc_parameter (credentials : Credentials) (artifacts : FullAuth) (mac : string) =
   String.Concat
-      [ yield sprintf @"Hawk id=""%s""" credentials.id
-        yield sprintf @", ts=""%d""" artifacts.timestamp
-        yield sprintf @", nonce=""%s""" artifacts.nonce
-        yield artifacts.hash
-              |> Option.map (sprintf @", hash=""%s""")
-              |> Option.or_default ""
-        yield artifacts.ext
-              |> Option.map Hoek.escape_header_attr
-              |> Option.map (sprintf @", ext=""%s""")
-              |> Option.or_default ""
-        yield sprintf @", mac=""%s""" mac
-        match artifacts.app with
-        | Some a ->
-          yield sprintf @", app=""%s""" a
-          match artifacts.dlg with
-          | Some d -> yield sprintf @", dlg=""%s""" d
-          | None -> ()
+    [ yield sprintf @"id=""%s""" credentials.id
+      yield sprintf @", ts=""%d""" (uint64 (artifacts.timestamp.Ticks / (NodaConstants.TicksPerSecond)))
+      yield sprintf @", nonce=""%s""" artifacts.nonce
+      yield artifacts.hash
+            |> Option.map (sprintf @", hash=""%s""")
+            |> Option.or_default ""
+      yield artifacts.ext
+            |> Option.map Hoek.escape_header_attr
+            |> Option.map (sprintf @", ext=""%s""")
+            |> Option.or_default ""
+      yield sprintf @", mac=""%s""" mac
+      match artifacts.app with
+      | Some a ->
+        yield sprintf @", app=""%s""" a
+        match artifacts.dlg with
+        | Some d -> yield sprintf @", dlg=""%s""" d
         | None -> ()
-      ]
+      | None -> ()
+    ]
+
+/// Calculate the header given the parameter (concats Hawk + " " + calc_param c a m)
+let calc_header credentials artifacts mac =
+  String.Concat [ "Hawk "; calc_parameter credentials artifacts mac ]
+
+/// Calculate the header given the parameter (concats Hawk + " " + param)
+let calc_header' param =
+  String.Concat [ "Hawk "; param ]
 
 [<Literal>]
 let NonceSize = 7
@@ -121,11 +147,23 @@ let header (uri  : Uri)
         app         = pars.app
         dlg         = pars.dlg }
     let mac = Crypto.calc_mac "header" data
-    { header    = calc_header pars.credentials data mac
+    let param = calc_parameter pars.credentials data mac
+    { header    = calc_header' param
+      parameter = param
       calc_data = data
       mac       = mac }
 
-let header' (uri : string) (meth : HttpMethod) (pars : ClientOptions)
+let header' (uri : string)
+            (meth : HttpMethod)
+            (pars : ClientOptions)
             : Choice<HeaderData, HeaderError> =
   Validation.validate_uri uri
   >>= fun uri -> header uri meth pars
+
+/// Sets the Authorization header on the System.Net.Http.HttpRequestMessage
+/// instance. You need to open System.Net.Http to do interesting things, and
+/// the actual value to return is in System.Net.Http.Headers.
+let set_auth_header (req : HttpRequestMessage) (header_data : HeaderData) =
+  let header = new AuthenticationHeaderValue("Hawk", header_data.parameter)
+  req.Headers.Authorization <- header
+  req

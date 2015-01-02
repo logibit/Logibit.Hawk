@@ -60,11 +60,11 @@ let authorization_header =
 [<Tests>]
 let server =
 
-  let timestamp = 123456789L
+  let timestamp = Instant.FromSecondsSinceUnixEpoch 123456789L
 
   let clock =
     { new IClock with
-        member x.Now = Instant(timestamp * NodaConstants.TicksPerSecond) }
+        member x.Now = timestamp }
 
   let creds_inner id =
     { id        = id
@@ -103,7 +103,7 @@ let server =
       let client_data =
         { credentials      = creds_inner "2"
           ext              = Some "Bazinga!"
-          timestamp        = uint64 timestamp
+          timestamp        = timestamp
           localtime_offset = None
           nonce            = Some "Ygvqdz"
           payload          = Some (UTF8.bytes "something to write about")

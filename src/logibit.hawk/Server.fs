@@ -1,4 +1,5 @@
 ﻿module logibit.hawk.Server
+
 open System
 
 open NodaTime
@@ -48,6 +49,11 @@ type AuthError =
   /// as the local offset the library was counting on
   | StaleTimestamp of ts_given:Instant * ts_server:Instant * offset_server : Duration
   | Other of string
+with
+  override x.ToString() =
+    match x with
+    | Other s -> s
+    | x -> sprintf "%A" x
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
@@ -133,6 +139,15 @@ module Settings =
       match cache.AddOrGetExisting(nonce, ts, in_20_min) |> box with
       | null -> Choice1Of2 ()
       | last_seen -> Choice2Of2 AlreadySeen
+
+  /// Create a new empty settings; beware that it will always return that
+  /// the credentials for the id given were not found.
+  let empty<'a> () : Settings<'a> =
+    { clock = NodaTime.SystemClock.Instance
+      allowed_clock_skew = Duration.FromSeconds 60L
+      local_clock_offset = Duration.Zero
+      nonce_validator    = nonce_validator_mem
+      creds_repo         = fun _ -> Choice2Of2 CredentialsNotFound }
 
 /// Internal validation module which takes care of the different
 /// aspects of validating the request.

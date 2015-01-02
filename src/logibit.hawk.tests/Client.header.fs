@@ -2,6 +2,8 @@
 
 open Fuchu
 
+open NodaTime
+
 open logibit.hawk
 open logibit.hawk.Types
 open logibit.hawk.Client
@@ -14,7 +16,7 @@ let client =
   let valid_sha1_opts =
     { credentials      = credentials SHA1
       ext              = Some "Bazinga!"
-      timestamp        = 1353809207UL
+      timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
       localtime_offset = None
       nonce            = Some "Ygvqdz"
       payload          = Some (UTF8.bytes "something to write about")
@@ -40,7 +42,7 @@ let client =
       let res =
         { credentials      = credentials SHA256
           ext              = Some "Bazinga!"
-          timestamp        = 1353809207UL
+          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
           localtime_offset = None
           nonce            = Some "Ygvqdz"
           payload          = Some (UTF8.bytes "something to write about")
@@ -57,12 +59,13 @@ let client =
       Assert.Equal("header should eq",
                    @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8=""",
                    res.header)
+      Assert.Equal("header parameter should eq", @"id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8=""", res.parameter)
 
     testCase "returns a valid authorization header (no ext)" <| fun _ ->
       let res =
         { credentials      = credentials SHA256
           ext              = None
-          timestamp        = 1353809207UL
+          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
           localtime_offset = None
           nonce            = Some "Ygvqdz"
           payload          = Some (UTF8.bytes "something to write about")
@@ -83,7 +86,7 @@ let client =
       let res =
         { credentials      = credentials SHA256
           ext              = None
-          timestamp        = 1353809207UL
+          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
           localtime_offset = None
           nonce            = Some "Ygvqdz"
           payload          = Some [||]
@@ -101,7 +104,7 @@ let client =
       let opts =
         { credentials  = credentials SHA256
           ext          = None
-          timestamp    = 1353809207UL
+          timestamp    = Instant.FromSecondsSinceUnixEpoch 1353809207L
           localtime_offset = None
           nonce        = Some "Ygvqdz"
           payload      = Some (UTF8.bytes "something to write about")

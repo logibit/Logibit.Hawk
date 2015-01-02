@@ -143,7 +143,7 @@ module HawkAttributes =
 type FullAuth =
   { credentials  : Credentials
     /// The # seconds since unix epoch
-    timestamp    : uint64
+    timestamp    : Instant
     nonce        : string
     ``method``   : HttpMethod
     resource     : string
@@ -205,7 +205,7 @@ module FullAuth =
 
   let from_hawk_attrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
     { credentials  = creds
-      timestamp    = uint64 (a.ts.Ticks / (NodaConstants.TicksPerSecond))
+      timestamp    = a.ts
       nonce        = a.nonce
       ``method``   = a.``method``
       resource     = a.uri.PathAndQuery

@@ -1,9 +1,10 @@
-﻿module logibit.hawk.Suave.Http
+﻿module Suave.Http.Hawk
 
 open System
 
 open Suave.Model
 open Suave.Types
+type SHttpMethod = HttpMethod
 
 open logibit.hawk
 open logibit.hawk.Types
@@ -20,17 +21,17 @@ module private Impl =
     | err -> failwithf "couldn't find union case %s.%s" t.Name s
 
   let from_suave_method =
-    from_str<Methods.HttpMethod>
-    >> function
-    | Methods.GET -> GET
-    | Methods.HEAD -> HEAD
-    | Methods.PUT -> PUT
-    | Methods.POST -> POST
-    | Methods.TRACE -> TRACE
-    | Methods.DELETE -> DELETE
-    | Methods.PATCH -> PATCH
-    | Methods.CONNECT -> CONNECT
-    | Methods.OPTIONS -> OPTIONS
+    function
+    | SHttpMethod.GET -> GET
+    | SHttpMethod.HEAD -> HEAD
+    | SHttpMethod.PUT -> PUT
+    | SHttpMethod.POST -> POST
+    | SHttpMethod.TRACE -> TRACE
+    | SHttpMethod.DELETE -> DELETE
+    | SHttpMethod.PATCH -> PATCH
+    | SHttpMethod.CONNECT -> CONNECT
+    | SHttpMethod.OPTIONS -> OPTIONS
+    | SHttpMethod.OTHER s -> failwithf "method %s not supported" s
 
   let bisect (s : string) (on : char) =
     let pi = s.IndexOf on
@@ -47,6 +48,7 @@ let HawkDataKey = "logibit.hawk.data"
 
 let auth_ctx (s : Settings<'a>) =
   fun ({ request = s_req } as ctx) ->
+    // TODO: use the correct host value
     let uri = Uri (String.Concat ["http://localhost:8080"; s_req.url])
     Binding.header "authorization" Choice1Of2 s_req
     >>= (fun header ->
@@ -66,26 +68,26 @@ let auth_ctx (s : Settings<'a>) =
 
 open Suave.Http // this changes binding of >>=
 
-let authenticate s f_cont f_err =
+/// Authenticate the request with the given settings and a
+/// continuation functor for both the successful case and the
+/// unauthorised case.
+///
+/// This will also set `HawkDataKey` in the `user_state` dictionary.
+let authenticate (s : Settings<_>)
+                 (f_err : AuthError -> WebPart)
+                 (f_cont : _ -> WebPart)
+                 : WebPart =
   fun ctx ->
     match auth_ctx s ctx with
     | Choice1Of2 res ->
-      Writers.set_user_data HawkDataKey res
-      >>= f_cont res
+      (Writers.set_user_data HawkDataKey res
+       >>= f_cont res) ctx
     | Choice2Of2 err ->
-      f_err err
-
-let authenticate' s f_err =
-  fun ctx ->
-    match auth_ctx s ctx with
-    | Choice1Of2 res ->
-      Writers.set_user_data HawkDataKey res
-      >>= Suave.Http.succeed
-    | Choice2Of2 err ->
-      f_err err
+      f_err err ctx
 
 module HttpContext =
 
+  /// Find the Hawk auth data from the context.
   let hawk_data (ctx : HttpContext) =
     ctx.user_state
     |> Map.tryFind HawkDataKey

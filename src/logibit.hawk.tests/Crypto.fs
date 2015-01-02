@@ -2,6 +2,8 @@
 
 open Fuchu
 
+open NodaTime
+
 open logibit.hawk
 open logibit.hawk.Types
 
@@ -15,7 +17,7 @@ let crypto =
         Crypto.gen_norm_str
           "header"
           { credentials = credentials SHA256 
-            timestamp   = 1357747017UL
+            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
@@ -37,7 +39,7 @@ let crypto =
               { id        = "sample"
                 key       = "dasdfasdf"
                 algorithm = SHA256 }
-            timestamp   = 1357747017UL
+            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
@@ -58,7 +60,7 @@ let crypto =
               { id        = "sample"
                 key       = "dasdfasdf"
                 algorithm = SHA256 }
-            timestamp   = 1357747017UL
+            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
