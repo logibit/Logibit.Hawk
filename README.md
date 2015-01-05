@@ -21,6 +21,7 @@ open logibit.hawk.Types
 open logibit.hawk.Server
 
 open Suave
+open Suave.Http // houses submodule 'Hawk'
 open Suave.Http.Successful
 open Suave.Http.RequestErrors
 open Suave.Types
