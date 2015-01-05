@@ -48,8 +48,10 @@ let HawkDataKey = "logibit.hawk.data"
 
 let auth_ctx (s : Settings<'a>) =
   fun ({ request = s_req } as ctx) ->
-    // TODO: use the correct host value
-    let uri = Uri (String.Concat ["http://localhost:8080"; s_req.url])
+
+    let ub = UriBuilder (s_req.url)
+    ub.Host <- s_req.host.value
+
     Binding.header "authorization" Choice1Of2 s_req
     >>= (fun header ->
       Binding.header "host" Choice1Of2 s_req
@@ -58,9 +60,9 @@ let auth_ctx (s : Settings<'a>) =
     >>= (fun (auth, host) ->
       let req =
         { ``method``    = Impl.from_suave_method s_req.``method``
-          uri           = uri
+          uri           = ub.Uri
           authorisation = auth
-          payload       = Some ctx.request.raw_form
+          payload       = if s_req.raw_form.Length = 0 then None else Some ctx.request.raw_form
           host          = None
           port          = None
           content_type  = "content-type" |> HttpRequest.header ctx.request }
