@@ -59,11 +59,7 @@ let sample_app settings : WebPart =
 
 ## Changelog
 
-v0.3.1: docs and new logo on nuget! And nuget `Hawk.Suave` published!
-
-v0.2: Hawk.Suave nuget
-
-v0.1: Initial Release
+Please have a look at [Releases](https://github.com/logibit/logibit.hawk/releases).
 
 ## API
 
