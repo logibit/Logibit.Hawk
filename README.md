@@ -58,6 +58,11 @@ let sample_app settings : WebPart =
     (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
 ```
 
+Currently the code is only fully documented - but not outside the code, so have
+a browse to [the source
+code](https://github.com/logibit/logibit.hawk/blob/master/src/logibit.hawk/Server.fs#L1)
+that you are interested in to see how the API composes.
+
 ## Changelog
 
 Please have a look at [Releases](https://github.com/logibit/logibit.hawk/releases).
