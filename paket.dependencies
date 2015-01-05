@@ -1,12 +1,10 @@
 source https://www.nuget.org/api/v2
 
-nuget Aether ~> 5.1
 nuget FsCheck ~> 1.0
 nuget FSharp.Core ~> 3.1
 nuget Fuchu-suave ~> 0.6
 nuget Fuchu-suave.FsCheck ~> 0.6
 nuget NodaTime ~> 1.3
 nuget NuGet.CommandLine
-nuget Suave ~> 0.20
-nuget Suave.Testing ~> 0.20
-nuget HawkNet
+nuget Suave ~> 0.21
+nuget Suave.Testing ~> 0.21

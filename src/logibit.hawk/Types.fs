@@ -4,6 +4,8 @@ open System
 
 open NodaTime
 
+type Lens<'a,'b> = ('a -> 'b) * ('b -> 'a -> 'a)
+
 type HttpMethod =
   | GET
   | HEAD

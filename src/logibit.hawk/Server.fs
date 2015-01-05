@@ -166,7 +166,7 @@ module internal Impl =
   let req_attr
     (m : Map<_, 'v>)
     (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Aether.Lens<'a, 'b>))
+    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b>))
     (w : Writer<'a>)
     : Choice<Writer<'a>, AuthError> =
 
@@ -182,7 +182,7 @@ module internal Impl =
   let opt_attr
     (m : Map<_, _>)
     (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Aether.Lens<'a, 'b option>))
+    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b option>))
     (w : Writer<'a>)
     : Choice<Writer<_>, AuthError> =
     

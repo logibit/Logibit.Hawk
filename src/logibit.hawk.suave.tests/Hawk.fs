@@ -44,12 +44,10 @@ let making_request =
           |> Choice1Of2 }
 
   let sample_app =
-    fun ctx ->
-      Hawk.authenticate
-        settings
-        (fun err -> UNAUTHORIZED (err.ToString()))
-        (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
-        ctx
+    Hawk.authenticate
+      settings
+      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
+      (fun err -> UNAUTHORIZED (err.ToString()))
 
   let req m data f_req f_resp =
     req_resp m "/" "" data None System.Net.DecompressionMethods.None f_req f_resp

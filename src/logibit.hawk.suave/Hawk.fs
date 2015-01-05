@@ -76,8 +76,8 @@ open Suave.Http // this changes binding of >>=
 ///
 /// This will also set `HawkDataKey` in the `user_state` dictionary.
 let authenticate (s : Settings<_>)
-                 (f_err : AuthError -> WebPart)
                  (f_cont : _ -> WebPart)
+                 (f_err : AuthError -> WebPart)
                  : WebPart =
   fun ctx ->
     match auth_ctx s ctx with

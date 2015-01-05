@@ -1,14 +1,18 @@
 # Logibit Hawk
 
 A F# implementation of the Hawk authentication protocol. Few dependencies. No
-cruft.
+cruft. No thrown exceptions.
+
+If this library throws an exception, report an issue - instead it uses return
+values that are structured instead.
 
 ``` bash
 paket add nuget Hawk
 paket add nuget Hawk.Suave
 ```
 
-Dependencies: { Aether, FSharp.Core, NodaTime }, nugets [Hawk][ng-h] and [Hawk.Suave][ng-hs].
+Dependencies: { Aether, FSharp.Core, NodaTime }, nugets [Hawk][ng-h] and
+[Hawk.Suave][ng-hs].
 
 For all API methods implemented, the full test suite for those methods has also
 been translated.
@@ -54,9 +58,10 @@ let settings =
 let sample_app settings : WebPart =
   Hawk.authenticate
     settings
-    (fun err -> UNAUTHORIZED (err.ToString()))
     // in here you can put your authenticated web parts
     (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
+    // on failure to authenticate the request
+    (fun err -> UNAUTHORIZED (err.ToString()))
 ```
 
 Currently the code is only fully documented - but not outside the code, so have
