@@ -16,13 +16,53 @@ been translated.
 
 ``` fsharp
 open logibit.hawk
+open logibit.hawk.Types
+open logibit.hawk.Server
 
-Server.authenticate ...
+open Suave
+open Suave.Http.Successful
+open Suave.Http.RequestErrors
+open Suave.Types
+
+// your own user type
+type User =
+  { homepage  : Uri
+    real_name : string }
+
+// this is the structure that is the 'context' for logibit.hawk
+let settings =
+  // this is what the lib is looking for to verify the request
+  let sample_creds =
+    { id        = "haf"
+      key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
+      algorithm = SHA256 }
+
+  // the generic type param allows you to implement a generic user repository
+  // for your own user type (above)
+  { Settings.empty<User>() with
+     // sign: UserId -> Choice<Credentials * 'a, CredsError>
+     creds_repo = fun id ->
+       (sample_creds,
+        { homepage = Uri("https://logibit.se"); real_name = "Henrik" }
+       )
+       // no error:
+       |> Choice1Of2 }
+
+// you can compose this into the rest of the app, as it's a web part
+let sample_app settings : WebPart =
+  Hawk.authenticate
+    settings
+    (fun err -> UNAUTHORIZED (err.ToString()))
+    // in here you can put your authenticated web parts
+    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
 ```
 
 ## Changelog
 
+v0.3.1: docs and new logo on nuget! And nuget `Hawk.Suave` published!
+
 v0.2: Hawk.Suave nuget
+
 v0.1: Initial Release
 
 ## API
