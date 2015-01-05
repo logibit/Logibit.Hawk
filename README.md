@@ -4,7 +4,8 @@ A F# implementation of the Hawk authentication protocol. Few dependencies. No
 cruft.
 
 ``` bash
-paket add nuget logibit.hawk
+paket add nuget Hawk
+paket add nuget Hawk.Suave
 ```
 
 Dependencies: { Aether, FSharp.Core, NodaTime }
@@ -12,7 +13,7 @@ Dependencies: { Aether, FSharp.Core, NodaTime }
 For all API methods implemented, the full test suite for those methods has also
 been translated.
 
-## Usage
+## Usage (Suave Example)
 
 ``` fsharp
 open logibit.hawk
