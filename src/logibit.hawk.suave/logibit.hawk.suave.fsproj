@@ -8,6 +8,9 @@
     <RootNamespace>logibit.hawk.suave</RootNamespace>
     <AssemblyName>logibit.hawk.suave</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <Id>Hawk.Suave</Id>
+    <Name>Logibit Hawk.Suave</Name>
+    <Description>Suave integration with the F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.</Description>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -20,6 +23,7 @@
     <Tailcalls>false</Tailcalls>
     <PlatformTarget>
     </PlatformTarget>
+    <DocumentationFile>bin\Debug\logibit.hawk.suave.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>false</DebugSymbols>
@@ -31,6 +35,9 @@
     </PlatformTarget>
     <ConsolePause>false</ConsolePause>
     <Tailcalls>true</Tailcalls>
+    <DocumentationFile>bin\Release\logibit.hawk.suave.xml</DocumentationFile>
+    <DefineConstants>
+    </DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

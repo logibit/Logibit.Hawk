@@ -8,6 +8,8 @@
     <RootNamespace>logibit.hawk</RootNamespace>
     <AssemblyName>logibit.hawk</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <Id>Hawk</Id>
+    <Name>Logibit Hawk</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
