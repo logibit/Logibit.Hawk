@@ -50,13 +50,12 @@ directory 'build/pkg'
 
 desc 'package nugets - finds all projects and package them'
 nugets_pack :create_nugets => ['build/pkg', :versioning, :compile] do |p|
+  p.configuration = Configuration
   p.files   = FileList['src/**/*.{csproj,fsproj,nuspec}'].
     exclude(/[tT]ests/)
   p.out     = 'build/pkg'
   p.exe     = 'packages/NuGet.CommandLine/tools/NuGet.exe'
   p.with_metadata do |m|
-    m.id          = 'Hawk'
-    m.title       = 'Logibit Hawk'
     m.description = 'A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.'
     m.authors     = 'Henrik Feldt, Logibit AB'
     m.project_url = 'https://github.com/logibit/logibit.hawk'
