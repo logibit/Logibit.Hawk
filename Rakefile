@@ -61,6 +61,7 @@ nugets_pack :create_nugets => ['build/pkg', :versioning, :compile] do |p|
     m.project_url = 'https://github.com/logibit/logibit.hawk'
     m.tags        = 'fsharp hawk authentication authorization security hawknet'
     m.version     = ENV['NUGET_VERSION']
+    m.icon_url    = 'https://raw.githubusercontent.com/logibit/logibit.hawk/master/tools/hawk.png'
   end
 end
 
