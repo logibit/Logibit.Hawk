@@ -8,7 +8,7 @@ paket add nuget Hawk
 paket add nuget Hawk.Suave
 ```
 
-Dependencies: { Aether, FSharp.Core, NodaTime }
+Dependencies: { Aether, FSharp.Core, NodaTime }, nugets [Hawk][ng-h] and [Hawk.Suave][ng-hs].
 
 For all API methods implemented, the full test suite for those methods has also
 been translated.
@@ -187,3 +187,5 @@ When the Logging abstraction is being used, it would be prudent to open up the
 required configuration point and possible use the interface in the
 `Settings<'a>` type. Until then, the module is internal.
 
+[ng-h]: https://www.nuget.org/packages/Hawk/
+[ng-hs]: https://www.nuget.org/packages/Hawk.Suave/
