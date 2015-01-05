@@ -51,26 +51,44 @@ let making_request =
         (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
         ctx
 
-  let req f_req f_resp =
-    req_resp HttpMethod.GET "/" "" None None System.Net.DecompressionMethods.None f_req f_resp
+  let req m data f_req f_resp =
+    req_resp m "/" "" data None System.Net.DecompressionMethods.None f_req f_resp
 
-  let set_auth_header req =
-    ClientOptions.mk' (creds_inner "1")
-    |> Client.header (Uri("http://127.0.0.1:8083/")) (HM.GET)
-    |> function
+  let ensure_auth_header = function
     | Choice1Of2 res -> res
     | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
+
+  let set_auth_header methd opts req =
+    Client.header (Uri("http://127.0.0.1:8083/")) methd opts
+    |> ensure_auth_header
     |> Client.set_auth_header req
+
+  let set_bytes bs (req : HttpRequestMessage) =
+    req.Content <- new System.Net.Http.ByteArrayContent(bs)
+    req
 
   testList "authentication cases" [
     testCase "when not signing request" <| fun _ ->
-      run_with' sample_app |> req id (fun resp ->
+      run_with' sample_app |> req HttpMethod.GET None id (fun resp ->
         Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
         let res_str = resp.Content.ReadAsStringAsync().Result
         Assert.StringContains("body", "Missing header 'authorization'", res_str)
         )
-    testCase "when signing request" <| fun _ ->
-      run_with' sample_app |> req set_auth_header (fun resp ->
+
+    testCase "when signing GET request" <| fun _ ->
+      let opts = ClientOptions.mk' (creds_inner "1")
+      let request = set_auth_header HM.GET opts
+      run_with' sample_app |> req HttpMethod.GET None request (fun resp ->
+        Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+        Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+        )
+
+    testCase "when signing POST request" <| fun _ ->
+      let opts = { ClientOptions.mk' (creds_inner "1") with payload = Some [| 0uy; 1uy |] }
+      let request =
+        set_auth_header HM.POST opts
+        >> set_bytes [| 0uy; 1uy |]
+      run_with' sample_app |> req HttpMethod.POST None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
