@@ -102,6 +102,37 @@ type Req =
     /// URI to the `authenticate` function.
     port          : Port option }
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Req =
+
+  let ``method``_ =
+    (fun x -> x.``method``),
+    fun v (x : Req) -> { x with ``method`` = v }
+
+  let uri_ =
+    (fun x -> x.uri),
+    fun v (x : Req) -> { x with uri = v }
+
+  let authorisation_ =
+    (fun x -> x.authorisation),
+    fun v (x : Req) -> { x with authorisation = v }
+
+  let payload_ =
+    (fun x -> x.payload),
+    fun v (x : Req) -> { x with payload = v }
+
+  let content_type_ =
+    (fun x -> x.content_type),
+    fun v (x : Req) -> { x with content_type = v }
+
+  let host_ =
+    (fun x -> x.host),
+    fun v (x : Req) -> { x with host = v }
+
+  let port_ =
+    (fun x -> x.port),
+    fun v (x : Req) -> { x with port = v }
+
 /// Authentication settings
 type Settings<'a> =
   { /// The clock to use for getting the time.

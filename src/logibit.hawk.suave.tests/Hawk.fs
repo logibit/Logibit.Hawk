@@ -46,6 +46,7 @@ let making_request =
   let sample_app =
     Hawk.authenticate
       settings
+      Hawk.bind_req
       (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
       (fun err -> UNAUTHORIZED (err.ToString()))
 
