@@ -73,6 +73,7 @@ let server =
 
   let settings =
     { clock              = clock
+      logger             = Logging.NoopLogger
       allowed_clock_skew = Duration.FromMilliseconds 8000L
       local_clock_offset = Duration.Zero
       nonce_validator    = Settings.nonce_validator_noop

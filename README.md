@@ -141,6 +141,27 @@ This module also contains a module-per-type with lenses for that type. The
 lenses follow the same format as [Aether](https://github.com/xyncro/aether)
 recommends.
 
+### `logibit.hawk.Logging`
+
+Types:
+
+ - `LogLevel` - the level of the LogLine.
+ - `LogLine` - this is the data structure of the logging module, this is where
+   you feed your data.
+ - `Logger interface` - the main interface that we can log to/into.
+ - `Logger module` - a module that contains functions equiv. to the instance
+   methods of the logger interface.
+ - `NoopLogger : Logger`  - the default logger, you have to replace it yourself
+
+It's good to know that you have to construct your LogLine yourself. That
+LogLines with Verbose or Debug levels should be sent to the `debug` or `verbose`
+functions/methods of the module/interface Logger, which in turn takes functions,
+which are evaluated if it's the case that the logging infrastructure is indeed
+logging at that level.
+
+This means that logging at that level, and computing the log lines, needs only
+be done if we can really do something with them.
+
 ### `logibit.hawk.Choice`
 
 This module adds some functions for composing Choice-s:
@@ -183,14 +204,6 @@ let validate_nonce validator
 There are some modules that are currently internal as to avoid conflicting with
 existing code. If these are made 'more coherent' or else moved to external
 libraries, they can be placed on their own and be made public. The modules like this are `Random`, `Prelude`, `Parse`.
-
-There's a cut at a logging abstraction - however, with the types used in this library,
-it's not that much need for logging - the types include all the needed info and
-adding logging in the wrong place can open the code up to differential attacks.
-
-When the Logging abstraction is being used, it would be prudent to open up the
-required configuration point and possible use the interface in the
-`Settings<'a>` type. Until then, the module is internal.
 
 [ng-h]: https://www.nuget.org/packages/Hawk/
 [ng-hs]: https://www.nuget.org/packages/Hawk.Suave/
