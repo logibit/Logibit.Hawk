@@ -5,6 +5,7 @@ open System
 open NodaTime
 
 open logibit.hawk
+open logibit.hawk.Logging
 open logibit.hawk.Types
 
 open Choice
@@ -106,6 +107,10 @@ type Settings<'a> =
   { /// The clock to use for getting the time.
     clock              : IClock
 
+    /// A logger - useful to use for finding input for the authentication
+    /// verification
+    logger             : Logger
+
     /// Number of seconds of permitted clock skew for incoming
     /// timestamps. Defaults to 60 seconds.  Provides a +/- skew which
     /// means actual allowed window is double the number of seconds.
@@ -143,7 +148,8 @@ module Settings =
   /// Create a new empty settings; beware that it will always return that
   /// the credentials for the id given were not found.
   let empty<'a> () : Settings<'a> =
-    { clock = NodaTime.SystemClock.Instance
+    { clock              = NodaTime.SystemClock.Instance
+      logger             = Logging.NoopLogger
       allowed_clock_skew = Duration.FromSeconds 60L
       local_clock_offset = Duration.Zero
       nonce_validator    = nonce_validator_mem
@@ -261,9 +267,33 @@ let parse_header (header : string) =
 let authenticate (s : Settings<'a>)
                  (req : Req)
                  : Choice<HawkAttributes * Credentials * 'a, AuthError> =
-
-  let now = s.clock.Now + s.local_clock_offset // before computing
+  let now = s.clock.Now
+  let now_with_offset = s.clock.Now + s.local_clock_offset // before computing
   let map_result (a, (b, c)) = a, b, c
+
+  (fun _ -> 
+    { message = "authenticate"
+      level   = Debug
+      path    = "logibit.hawk.Server.authenticate"
+      data    =
+        [ "now_with_offset", box now_with_offset
+          "req", box (
+            [ "header", box req.authorisation
+              "content_type", box req.content_type
+              "host", box req.host
+              "method", box req.``method``
+              "payload_length", box (req.payload |> Option.map (fun bs -> bs.Length))
+              "port", box req.port
+              "uri", box req.uri
+            ] |> Map.ofList)
+          "s", box (
+            [ "allowed_clock_skew", box s.allowed_clock_skew
+              "local_clock_offset", box s.local_clock_offset
+            ] |> Map.ofList)
+        ] |> Map.ofList
+      timestamp = now })
+  |> Logger.debug s.logger
+
   parse_header req.authorisation // parse header, unknown header values so far
   >>= fun header ->
       Writer.lift (HawkAttributes.mk req.``method`` req.uri)
@@ -280,7 +310,7 @@ let authenticate (s : Settings<'a>)
       >>= validate_mac req
       >>= validate_payload req
       >>= validate_nonce s.nonce_validator
-      >>= validate_timestamp now s.allowed_clock_skew s.local_clock_offset
+      >>= validate_timestamp now_with_offset s.allowed_clock_skew s.local_clock_offset
       >>- map_result
 
 /// Authenticate payload hash - used when payload cannot be provided
@@ -297,6 +327,7 @@ let authenticate_payload (payload : byte [])
                          (creds : Credentials)
                          (given_hash : string)
                          (content_type : string) =
+
   let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
   String.eq_ord_cnst_time calc_hash given_hash
 

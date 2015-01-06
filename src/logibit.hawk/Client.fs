@@ -7,6 +7,7 @@ open System.Net.Http.Headers
 open NodaTime
 
 open logibit.hawk
+open logibit.hawk.Logging
 
 open Choice
 open logibit.hawk.Types

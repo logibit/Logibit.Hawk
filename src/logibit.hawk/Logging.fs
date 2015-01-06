@@ -1,4 +1,4 @@
-﻿module internal logibit.hawk.Logging
+﻿module logibit.hawk.Logging
 
 open System
 
@@ -96,31 +96,37 @@ type LogLevel =
 /// log line as well as a message and an optional exception.
 type LogLine =
   { /// the level that this log line has
-    level         : LogLevel
+    level     : LogLevel
     /// the source of the log line, e.g. 'ModuleName.FunctionName'
-    path          : string
+    path      : string
     /// the message that the application wants to log
-    message       : string
-    /// an optional exception
-    ``exception`` : exn option
+    message   : string
+    /// any key-value based data to log
+    data      : Map<string, obj>
     /// timestamp when this log line was created
-    timestamp     : Instant }
+    timestamp : Instant }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module LogLine =
 
   let mk (clock : IClock) path level trace ex message =
-    { message       = message
-      level         = level
-      path          = path
-      ``exception`` = ex
-      timestamp     = clock.Now }
+    { message   = message
+      level     = level
+      path      = path
+      data      = ex
+      timestamp = clock.Now }
 
 /// The primary Logger abstraction that you can log data into
 type Logger =
-  abstract member Verbose : (unit -> LogLine) -> unit
-  abstract member Debug : (unit -> LogLine) -> unit
-  abstract member Log : LogLine -> unit
+  abstract Verbose : (unit -> LogLine) -> unit
+  abstract Debug : (unit -> LogLine) -> unit
+  abstract Log : LogLine -> unit
+
+let NoopLogger =
+  { new Logger with
+      member x.Verbose f_line = ()
+      member x.Debug f_line = ()
+      member x.Log line = () }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Logger =
