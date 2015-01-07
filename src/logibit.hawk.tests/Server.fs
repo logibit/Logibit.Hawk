@@ -298,4 +298,32 @@ let server =
           | MissingAttribute actual_attr -> Assert.Equal("attr", attr, actual_attr)
           | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
           )
+
+    testCase "parses a valid authentication header (sha256, ext=ignore-payload)" <| fun _ ->
+      let uri = Uri "https://example.net/somewhere/over/the/rainbow"
+      let client_data =
+        { credentials      = creds_inner "2"
+          ext              = Some "ignore-payload"
+          timestamp        = timestamp
+          localtime_offset = None
+          nonce            = Some "Ygvqdz"
+          payload          = None // no payload used
+          hash             = None
+          content_type     = None // hence no content type
+          app              = None
+          dlg              = None }
+        |> Client.header uri POST
+        |> ensure_value
+
+      { ``method``    = POST
+        uri           = uri
+        authorisation = client_data.header
+        payload       = Some ([| 1uy; 2uy; 3uy |]) // this is what the server impl will feed
+        host          = None
+        port          = None
+        content_type  = Some "text/plain" }
+      |> authenticate settings
+      |> ensure_value
+      |> fun (attrs, _, user) ->
+        Assert.Equal("return value", "steve", user)
     ]

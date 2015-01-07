@@ -252,6 +252,8 @@ module internal Impl =
     match req.payload with
     | None ->
       Choice1Of2 (attrs, cs)
+    | Some payload when attrs.ext |> Option.fold (fun s t -> t.Contains("ignore-payload")) false ->
+      Choice1Of2 (attrs, cs)
     | Some payload ->
       let creds : Credentials = fst cs
       Choice.of_option (MissingAttribute "hash") attrs.hash
