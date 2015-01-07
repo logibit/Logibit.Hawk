@@ -66,9 +66,15 @@ nugets_pack :create_nugets => ['build/pkg', :versioning, :compile] do |p|
 end
 
 namespace :tests do
-  task :unit do
+  task :hawk do
     system "src/logibit.hawk.tests/bin/#{Configuration}/logibit.hawk.tests.exe", clr_command: true
   end
+
+  task :suave do
+    system "src/logibit.hawk.suave.tests/bin/#{Configuration}/logibit.hawk.suave.tests.exe", clr_command: true
+  end
+
+  task :unit => [:hawk, :suave]
 end
 
 task :tests => :'tests:unit'

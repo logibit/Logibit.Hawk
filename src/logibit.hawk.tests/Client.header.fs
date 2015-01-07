@@ -132,3 +132,31 @@ let client =
       let error = Client.header' "" POST valid_sha1_opts |> ensure_err
       Assert.Equal("should have invalid uri", InvalidUri, error)
     ]
+
+[<Tests>]
+let faced_in_the_wild =
+  testList "examples" [
+    testCase "Local dev" <| fun _ ->
+      let opts =
+        { credentials  =
+            { algorithm = SHA256
+              id = "principals-f5cd484b3cbf455da0405a1d34a33580"
+              key = "21s81hn605334qgqcpt8drkuattfcug3jthyzpfui63" }
+          ext          = None
+          timestamp    = Instant.FromSecondsSinceUnixEpoch 1420622994L
+          localtime_offset = None
+          nonce        = Some "MEyb64"
+          payload      = Some (UTF8.bytes "email=henrik%40haf.se&password=a&timestamp=2015-01-05T14%3A57%3A56Z&digest=3C830EC51AD9001BA1A69D84583002C82E7F67146DA2774F14E1F31C8B9DF552")
+          hash         = None
+          content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
+          app          = None
+          dlg          = None }
+      let res =
+        Client.header' "http://localhost:8080/api/accounts/mark_account_verified" PUT opts
+        |> ensure_value
+      Assert.Equal("HMACs should eq", "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=", Crypto.calc_mac "header" res.calc_data)
+      Assert.Equal("header should eq",
+                   @"Hawk id=""principals-f5cd484b3cbf455da0405a1d34a33580"", ts=""1420622994"", nonce=""MEyb64"", hash=""o+0u+l+7jf/XB9hpLVHAv4uBvXOg2+Ued0/f+2RJxwc="", mac=""2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=""",
+                   res.header)
+
+    ]

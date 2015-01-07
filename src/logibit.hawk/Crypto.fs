@@ -4,6 +4,8 @@ open System
 open System.Security.Cryptography
 open System.Text
 
+open NodaTime
+
 open logibit.hawk
 open logibit.hawk.Types
 
@@ -17,7 +19,7 @@ let gen_norm_str (``type`` : string) (opts : FullAuth) =
       yield "."
       yield ``type``
       yield "\n"
-      yield sprintf "%O\n" opts.timestamp
+      yield sprintf "%d\n" (opts.timestamp.Ticks / NodaConstants.TicksPerSecond)
       yield sprintf "%s\n" opts.nonce
       yield sprintf "%O\n" opts.``method``
       yield sprintf "%s\n" opts.resource
