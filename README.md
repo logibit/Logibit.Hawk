@@ -75,6 +75,8 @@ that you are interested in to see how the API composes.
 Use the .js file from `src/vendor/hawk.js/lib`, then you can wrap your ajax
 calls like this:
 
+**request.js:** (using CommonJS module layout, which you can use to require it and
+get a function in return).
 
 ``` javascript
 var Auth   = require('./auth.js'),
