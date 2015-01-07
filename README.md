@@ -140,7 +140,7 @@ Please have a look at [Releases](https://github.com/logibit/logibit.hawk/release
 ## API
 
 This is the public API of the library. It mimics the API of Hawk.js - the
-reference implementation.
+[reference implementation](https://github.com/hueniverse/hawk/blob/master/lib/client.js).
 
 ### `logibit.hawk.Client`
 
