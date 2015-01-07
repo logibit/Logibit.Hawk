@@ -58,6 +58,7 @@ let settings =
 let sample_app settings : WebPart =
   Hawk.authenticate
     settings
+    Hawk.bind_req
     // in here you can put your authenticated web parts
     (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
     // on failure to authenticate the request
@@ -75,7 +76,7 @@ Use the .js file from `src/vendor/hawk.js/lib`, then you can wrap your ajax
 calls like this:
 
 
-```
+``` javascript
 var Auth   = require('./auth.js'),
     Hawk   = require('./lib/hawk.js'),
     Logger = require('./logger.js'),
