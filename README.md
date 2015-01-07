@@ -107,9 +107,9 @@ qt(settings.url));
     return;
   }
 
-  Logger.debug('(1/4)', settings.type, settings.url);
-  Logger.debug('(2/4) opts:', opts);
-  Logger.debug('(3/4) header:', header.field);
+  Logger.debug('(1/3)', settings.type, settings.url);
+  Logger.debug('(2/3) opts:', opts);
+  Logger.debug('(3/3) header:', header.field);
 
   jqXHR.setRequestHeader('Authorization', header.field);
 };
