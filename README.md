@@ -69,6 +69,69 @@ a browse to [the source
 code](https://github.com/logibit/logibit.hawk/blob/master/src/logibit.hawk/Server.fs#L1)
 that you are interested in to see how the API composes.
 
+## Usage from client:
+
+Use the .js file from `src/vendor/hawk.js/lib`, then you can wrap your ajax
+calls like this:
+
+
+```
+var Auth   = require('./auth.js'),
+    Hawk   = require('./lib/hawk.js'),
+    Logger = require('./logger.js'),
+    jQuery = require('jquery');
+
+var qt = function(str) {
+  return "'" + str + "'";
+}
+
+var jqSetHawkHeader = function(opts, creds, jqXHR, settings) {
+  if (typeof opts.contentType == 'undefined') {
+    throw new Error('missing contentType from options');
+  }
+
+  var opts = jQuery.extend({ credentials: creds, payload: settings.data },
+opts),
+      // header(uri, method, options): should have options values for
+      // - contentType
+      // - credentials
+      // - payload
+      header = Hawk.client.header(settings.url, settings.type, opts); // type =
+HTTP-method
+
+  if (typeof header.err !== 'undefined') {
+    Logger.error('(1/2) Hawk error:', qt(header.err), 'for', method,
+qt(settings.url));
+    Logger.error('(2/2) Using credentials', opts.credentials);
+    return;
+  }
+
+  Logger.debug('(1/4)', settings.type, settings.url);
+  Logger.debug('(2/4) opts:', opts);
+  Logger.debug('(3/4) header:', header.field);
+
+  jqXHR.setRequestHeader('Authorization', header.field);
+};
+
+module.exports = function (method, resource, data, opts) {
+  var origin    = window.location.origin,
+      creds     = Auth.getCredentials(),
+      url       = origin + resource,
+      opts      = jQuery.extend({
+        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+        dataType: 'html'
+      }, (typeof opts !== 'undefined' ? opts : {})),
+      jqOpts    = jQuery.extend({
+        type:       method,
+        data:       data,
+        url:        url,
+        beforeSend: function(xhr, s) { jqSetHawkHeader(opts, creds, xhr, s) }
+      }, opts);
+
+  return jQuery.ajax(jqOpts);
+};
+```
+
 ## Changelog
 
 Please have a look at [Releases](https://github.com/logibit/logibit.hawk/releases).
