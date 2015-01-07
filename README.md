@@ -91,18 +91,15 @@ var jqSetHawkHeader = function(opts, creds, jqXHR, settings) {
     throw new Error('missing contentType from options');
   }
 
-  var opts = jQuery.extend({ credentials: creds, payload: settings.data },
-opts),
+  var opts = jQuery.extend({ credentials: creds, payload: settings.data }, opts),
       // header(uri, method, options): should have options values for
       // - contentType
       // - credentials
       // - payload
-      header = Hawk.client.header(settings.url, settings.type, opts); // type =
-HTTP-method
+      header = Hawk.client.header(settings.url, settings.type, opts); // type = HTTP-method
 
   if (typeof header.err !== 'undefined') {
-    Logger.error('(1/2) Hawk error:', qt(header.err), 'for', method,
-qt(settings.url));
+    Logger.error('(1/2) Hawk error:', qt(header.err), 'for', method, qt(settings.url));
     Logger.error('(2/2) Using credentials', opts.credentials);
     return;
   }
