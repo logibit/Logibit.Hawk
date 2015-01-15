@@ -112,8 +112,8 @@ open Suave.Http // this changes binding of >>=
 /// your own Req value, or re-map the default one.
 let authenticate (s : Settings<'a>)
                  (f_req : ReqFactory<'a>)
-                 (f_cont : _ -> WebPart)
                  (f_err : AuthError -> WebPart)
+                 (f_cont : _ -> WebPart)
                  : WebPart =
   fun ctx ->
     match auth_ctx s f_req ctx with
