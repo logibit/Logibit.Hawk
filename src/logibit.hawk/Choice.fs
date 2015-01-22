@@ -13,7 +13,7 @@ let (>>=) m f =
 /// bind the successful value to f
 let bind f m = (m >>= f)
 
-/// bind f to the successful value
+/// bind f to the error value
 let (>>!) m f =
   m
   |> function
@@ -42,6 +42,7 @@ let (>>-) m f =
 /// map success
 let map f o = (o >>- f)
 
+/// map error
 let (>>@) m f =
   m
   |> function
@@ -50,3 +51,16 @@ let (>>@) m f =
 
 /// map error
 let map_2 f o = o >>@ f
+
+/// inject a side-effect beside the error
+let (>>*) m f =
+  m
+  |> function
+  | Choice1Of2 x -> Choice1Of2 x
+  | Choice2Of2 err ->
+    f err
+    Choice2Of2 err
+
+/// inject a side-effect beside the error
+let inject_2 f o =
+  o >>* f

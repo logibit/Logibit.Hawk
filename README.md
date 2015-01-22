@@ -247,6 +247,9 @@ This module adds some functions for composing Choice-s:
  - `(>>@) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - map the
    second/error choice value to another one (and another type, possibly).
  - `map_2` - same as above
+ - `(>>*) : m:Choice<'a, 'b> -> f:('b -> unit) -> Choice<'a, 'b>` - inject
+   a side-effect if the choice is in the error case.
+ - `inject_2` - same as above
 
 #### Example
 

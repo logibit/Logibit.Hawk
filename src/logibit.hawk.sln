@@ -40,7 +40,4 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = logibit.hawk.tests\logibit.hawk.tests.fsproj
-	EndGlobalSection
 EndGlobal

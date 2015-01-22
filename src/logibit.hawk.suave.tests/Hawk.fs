@@ -47,8 +47,8 @@ let making_request =
     Hawk.authenticate
       settings
       Hawk.bind_req
-      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
       (fun err -> UNAUTHORIZED (err.ToString()))
+      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
 
   let req m data f_req f_resp =
     req_resp m "/" "" data None System.Net.DecompressionMethods.None f_req f_resp

@@ -278,6 +278,14 @@ module internal Impl =
     else
       Choice2Of2 (StaleTimestamp (given_ts, now, local_offset))
 
+  let log_failure (logger : Logger) timestamp (err : AuthError) =
+    { message   = "authenticate failure"
+      level     = Info
+      path      = "logibit.hawk.Server.authenticate"
+      data      = [ "error", box err ] |> Map.ofList
+      timestamp = timestamp }
+    |> logger.Log
+
 open Impl
 
 /// Parse the header into key-value pairs in the form
@@ -305,7 +313,7 @@ let authenticate (s : Settings<'a>)
   let map_result (a, (b, c)) = a, b, c
 
   (fun _ -> 
-    { message = "authenticate"
+    { message = "authenticate start"
       level   = Debug
       path    = "logibit.hawk.Server.authenticate"
       data    =
@@ -345,6 +353,7 @@ let authenticate (s : Settings<'a>)
       >>= validate_nonce s.nonce_validator
       >>= validate_timestamp now_with_offset s.allowed_clock_skew s.local_clock_offset
       >>- map_result
+      >>* log_failure s.logger now
 
 /// Authenticate payload hash - used when payload cannot be provided
 /// during authenticate()
