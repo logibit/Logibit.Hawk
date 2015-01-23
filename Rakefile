@@ -11,6 +11,14 @@ Configuration = 'Release'
 
 Albacore::Tasks::Versionizer.new :versioning
 
+task :prepare do
+  system 'git submodule update --init'
+  Dir.chdir 'src/vendor/hawk.js' do
+    system 'npm install'
+    system 'npm test'
+  end
+end
+
 desc 'create assembly infos'
 asmver_files :assembly_info do |a|
   a.files = FileList['**/*proj'] # optional, will find all projects recursively by default
@@ -79,7 +87,7 @@ end
 
 task :tests => :'tests:unit'
 
-task :default => [ :create_nugets, :tests ]
+task :default => [ :prepare, :create_nugets, :tests ]
 
 task :ensure_nuget_key do
   raise 'missing env NUGET_KEY value' unless ENV['NUGET_KEY']
