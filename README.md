@@ -175,9 +175,17 @@ granular enough.
  - [x] credential function errors -> `CredsError`
  - [x] mac doesn't match payload -> `BadMac`
  - [x] missing payload hash if payload -> `MissingAttribute`
- - [x] payload hash not matching -> `BadPayloadHash`
+ - [x] payload hash not matching -> `BadPayloadHash of hash_given * hash_calculated`
  - [x] nonce reused -> `NonceError AlreadySeen`, with in-memory cache
  - [x] stale timestamp -> `StaleTimestamp`
+
+##### Hints when not under attack (in dev)
+
+If you see CredsError, it's most likely a problem that you can't find the user with your repository function.
+
+If you see BadMac, it means probably means you haven't fed the right parameters to `authenticate`. Log the input parameters, verify that host and port match (are you behind a reverse proxy?) and check that the length of the content is the same on the client as on the server.
+
+If you see PadPayloadHash, it means that the MAC check passed, so you're probably looking at an empty byte array of body or some other decoding error of the content.
 
 ### `logibit.hawk.Crypto`
 
