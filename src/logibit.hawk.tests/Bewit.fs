@@ -80,11 +80,12 @@ let ``parsing bewit parts`` =
     match Bewit.parse (ModifiedBase64Url.decode b) with
     | Choice1Of2 map ->
       Assert.Equal("has id", creds_inner.id, map |> Map.find "id")
-      Assert.NotEqual("has ext", "", map |> Map.find "ext")
-      Assert.Equal("has mac", "", map |> Map.find "mac")
-      Assert.Equal("has exp", "", map |> Map.find "exp")
+      Assert.NotEqual("has exp", "", map |> Map.find "exp")
+      Assert.NotEqual("has mac", "", map |> Map.find "mac")
+      Assert.Equal("has not got ext", "", map |> Map.find "ext")
     | err ->
       Tests.failtest "should have been able to parse the four token components"
+
 let settings =
   { BewitSettings.clock = clock
     logger              = Logging.NoopLogger

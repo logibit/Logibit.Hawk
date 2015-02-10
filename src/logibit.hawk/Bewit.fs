@@ -73,22 +73,19 @@ module BewitOptions =
 /// Parse the bewit string into key-value pairs in the form of a
 /// `Map<string, string>`.
 let parse (bewit : string) =
-  let four_split header =
-    match header |> Regex.split "\\\\" with
-    | xs when xs.Length = 4 ->
-      Choice1Of2 xs
-    | xs ->
-      sprintf "wrong number of arguments in string. Should be 4 but given %d" xs.Length
-      |> Choice2Of2
-
-  four_split bewit
-  >>@ BadArguments
-  >>- (List.fold (fun memo part ->
-        match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
-        | Some groups ->
-          memo |> Map.add groups.["k"].Value groups.["v"].Value
-        | None -> memo
-        ) Map.empty)
+  match bewit.Split('\\') with
+  | [| id; exp; mac; ext |] ->
+    Choice1Of2
+      ([ "id", id
+         "exp", exp
+         "mac", mac
+         "ext", ext
+       ] |> Map.ofList)
+  | xs ->
+    sprintf "wrong number of arguments in string. Should be 4 but given %d"
+            xs.Length
+    |> BadArguments
+    |> Choice2Of2
 
 module internal Impl =
 
