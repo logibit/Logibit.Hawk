@@ -74,4 +74,9 @@ let crypto =
                    "hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\nU4MKKSmiVxk37JCCrAVIjV/OhB3y+NdwoCr6RShbVkE=\nthis is some data\n",
                    subject)
 
-    ]
+    testCase "normalised payload hash" <| fun _ ->
+      let payload = Some (UTF8.bytes "description=a&timestamp=2015-01-06T00%3A00%3A00.000Z&amount=12&currency=SEK&targets%5Beconomic%5D%5Bkey%5D=economic&targets%5Beconomic%5D%5Btitle%5D=Economic+Finance+Voucher&receipt_id=6cf8a352bc16439ca60895da7d0dfadb")
+      let content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
+      let result = Crypto.calc_payload_hash' payload Algo.SHA256 content_type
+      Assert.Equal("correct payload hash", "SRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI=", result)
+  ]

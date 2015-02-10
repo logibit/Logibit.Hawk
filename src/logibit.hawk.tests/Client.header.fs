@@ -154,9 +154,36 @@ let faced_in_the_wild =
       let res =
         Client.header' "http://localhost:8080/api/accounts/mark_account_verified" PUT opts
         |> ensure_value
-      Assert.Equal("HMACs should eq", "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=", Crypto.calc_mac "header" res.calc_data)
+      Assert.Equal("mac should eq", "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=", Crypto.calc_mac "header" res.calc_data)
       Assert.Equal("header should eq",
                    @"Hawk id=""principals-f5cd484b3cbf455da0405a1d34a33580"", ts=""1420622994"", nonce=""MEyb64"", hash=""o+0u+l+7jf/XB9hpLVHAv4uBvXOg2+Ued0/f+2RJxwc="", mac=""2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=""",
                    res.header)
 
+    testCase "invalid payload hash" <| fun _ ->
+      let opts =
+        { credentials  =
+            { algorithm = SHA256
+              id = "principals-3e38ab647ab444558f19944d4011400b"
+              key = "6vis46o2lytiwzgu3etkbfv9243i11fxougnso2uayz" }
+          ext          = None
+          timestamp    = Instant.FromSecondsSinceUnixEpoch 1422014454L
+          localtime_offset = None
+          nonce        = Some "HtKift"
+          payload      = Some (UTF8.bytes "description=a&timestamp=2015-01-06T00%3A00%3A00.000Z&amount=12&currency=SEK&targets%5Beconomic%5D%5Bkey%5D=economic&targets%5Beconomic%5D%5Btitle%5D=Economic+Finance+Voucher&receipt_id=6cf8a352bc16439ca60895da7d0dfadb")
+          hash         = None
+          content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
+          app          = None
+          dlg          = None }
+      let res =
+        Client.header' "http://localhost:8080/api/receipts/save_details" POST opts
+        |> ensure_value
+      Assert.Equal("normalised strings should eq",
+                   "hawk.1.header\n1422014454\nHtKift\nPOST\n/api/receipts/save_details\nlocalhost\n8080\nSRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI=\n\n",
+                   Crypto.gen_norm_str "header" res.calc_data)
+      Assert.Equal("mac should eq",
+                   "CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ=",
+                   Crypto.calc_mac "header" res.calc_data)
+      Assert.Equal("header should eq",
+                   @"Hawk id=""principals-3e38ab647ab444558f19944d4011400b"", ts=""1422014454"", nonce=""HtKift"", hash=""SRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI="", mac=""CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ=""",
+                   res.header)
     ]
