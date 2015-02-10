@@ -73,7 +73,6 @@ module BewitOptions =
 /// Parse the bewit string into key-value pairs in the form of a
 /// `Map<string, string>`.
 let parse (bewit : string) =
-
   let four_split header =
     match header |> Regex.split "\\\\" with
     | xs when xs.Length = 4 ->

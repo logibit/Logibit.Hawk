@@ -77,7 +77,7 @@ let ``parsing bewit parts`` =
                              clock                    = clock
                              local_clock_offset       = ts 1356420407232L - clock.Now
                              ext                      = None }
-    match Bewit.parse b with
+    match Bewit.parse (ModifiedBase64Url.decode b) with
     | Choice1Of2 map ->
       Assert.Equal("has id", creds_inner.id, map |> Map.find "id")
       Assert.NotEqual("has ext", "", map |> Map.find "ext")
