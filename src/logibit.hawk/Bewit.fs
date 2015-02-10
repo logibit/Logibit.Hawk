@@ -49,10 +49,10 @@ let generate (uri : Uri) (opts : BewitOptions) =
   let now = opts.clock.Now
   let exp = now + opts.ttl
   let mac = opts |> BewitOptions.to_auth now uri exp |> Crypto.calc_mac "bewit"
-  let exp = exp.Ticks / NodaConstants.TicksPerMillisecond |> string
+  let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.or_default ""
   // Construct bewit: id\exp\mac\ext
-  let raw = opts.credentials.id + "\\" + exp + "\\" + mac + "\\" + ext
+  let raw = sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
   Encoding.ModifiedBase64Url.encode raw
 
 let generate' (uri : string) =
