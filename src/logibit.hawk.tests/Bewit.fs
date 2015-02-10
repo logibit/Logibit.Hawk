@@ -110,4 +110,58 @@ let authentication =
           Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
         Assert.Equal("return value", "steve", user)
 
+    testCase "should successfully authenticate a request (first param)" <| fun _ ->
+      ()
+    
+    testCase "should successfully authenticate a request (only param)" <| fun _ ->
+      ()
+    
+    testCase "should fail on multiple authentication" <| fun _ ->
+      ()
+    
+    testCase "should fail on method other than GET" <| fun _ ->
+      ()
+    
+    testCase "should fail on invalid host header" <| fun _ ->
+      ()
+    
+    testCase "should fail on empty bewit" <| fun _ ->
+      ()
+    
+    testCase "should fail on invalid bewit" <| fun _ ->
+      ()
+    
+    testCase "should fail on missing bewit" <| fun _ ->
+      ()
+    
+    testCase "should fail on invalid bewit structure" <| fun _ ->
+      ()
+    
+    testCase "should fail on empty bewit attribute" <| fun _ ->
+      ()
+    
+    testCase "should fail on missing bewit id attribute" <| fun _ ->
+      ()
+    
+    testCase "should fail on expired access" <| fun _ ->
+      ()
+    
+    testCase "should fail on credentials function error" <| fun _ ->
+      ()
+    
+    testCase "should fail on credentials function error with credentials" <| fun _ ->
+      ()
+    
+    testCase "should fail on null credentials function response" <| fun _ ->
+      ()
+    
+    testCase "should fail on invalid credentials function response" <| fun _ ->
+      ()
+    
+    testCase "should fail on invalid credentials function response (unknown algorithm)" <| fun _ ->
+      ()
+    
+    testCase "should fail on expired access" <| fun _ ->
+      ()
+    
   ]
