@@ -165,15 +165,15 @@ let faced_in_the_wild =
             { algorithm = SHA256
               id = "principals-3e38ab647ab444558f19944d4011400b"
               key = "6vis46o2lytiwzgu3etkbfv9243i11fxougnso2uayz" }
-          ext          = None
-          timestamp    = Instant.FromSecondsSinceUnixEpoch 1422014454L
-          localtime_offset = None
-          nonce        = Some "HtKift"
-          payload      = Some (UTF8.bytes "description=a&timestamp=2015-01-06T00%3A00%3A00.000Z&amount=12&currency=SEK&targets%5Beconomic%5D%5Bkey%5D=economic&targets%5Beconomic%5D%5Btitle%5D=Economic+Finance+Voucher&receipt_id=6cf8a352bc16439ca60895da7d0dfadb")
-          hash         = None
-          content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
-          app          = None
-          dlg          = None }
+          ext                = None
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1422014454L
+          local_clock_offset = None
+          nonce              = Some "HtKift"
+          payload            = Some (UTF8.bytes "description=a&timestamp=2015-01-06T00%3A00%3A00.000Z&amount=12&currency=SEK&targets%5Beconomic%5D%5Bkey%5D=economic&targets%5Beconomic%5D%5Btitle%5D=Economic+Finance+Voucher&receipt_id=6cf8a352bc16439ca60895da7d0dfadb")
+          hash               = None
+          content_type       = Some "application/x-www-form-urlencoded; charset=UTF-8"
+          app                = None
+          dlg                = None }
       let res =
         Client.header' "http://localhost:8080/api/receipts/save_details" POST opts
         |> ensure_value
