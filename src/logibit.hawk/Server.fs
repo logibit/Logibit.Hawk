@@ -446,9 +446,9 @@ let decode_bewit_from_base64 (req : BewitRequest) =
   else
     Choice2Of2 (DecodeError ("Could not decode from base64. uri:" + req.uri.ToString()))
 
-/// Parse the bewit header into key-value pairs in the form of a
+/// Parse the bewit string into key-value pairs in the form of a
 /// `Map<string, string>`.
-let parse_bewit_header (header : string) =
+let parse_bewit (bewit : string) =
 
   let four_split header =
     match header |> Regex.split "[\\\]" with
@@ -471,13 +471,13 @@ let parse_bewit_header (header : string) =
 let authenticate_bewit (settings: BewitSettings<'a>) 
                       (req: BewitRequest) =
   decode_bewit_from_base64 req
-  >>= parse_bewit_header // parse header, unknown header values so far
-  >>= (fun header ->
+  >>= parse_bewit // parse bewit string
+  >>= (fun parts ->
     Writer.lift (BewitAttributes.mk req.``method`` req.uri)
-    >>~ bewit_req_attr header "id" (Parse.id, BewitAttributes.id_)
-    >>= bewit_req_attr header "exp" (Parse.id, BewitAttributes.exp_)
-    >>= bewit_req_attr header "mac" (Parse.id, BewitAttributes.mac_)
-    >>= bewit_opt_attr header "ext" (Parse.id, BewitAttributes.ext_)
+    >>~ bewit_req_attr parts "id" (Parse.id, BewitAttributes.id_)
+    >>= bewit_req_attr parts "exp" (Parse.id, BewitAttributes.exp_)
+    >>= bewit_req_attr parts "mac" (Parse.id, BewitAttributes.mac_)
+    >>= bewit_opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)
     >>- Writer.``return``
     >>= bewit_validate_credentials settings.creds_repo
     >>- map_result)

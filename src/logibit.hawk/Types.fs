@@ -260,8 +260,6 @@ type BewitRequest =
     ``method``    : HttpMethod
     /// Required uri for the request
     uri           : Uri
-    /// optional header value.
-    header        : string option
     /// Optional host name override (from uri) - useful if your web server
     /// is behind a proxy and you can't easily feed a 'public' URI to the
     /// `authenticate` function.

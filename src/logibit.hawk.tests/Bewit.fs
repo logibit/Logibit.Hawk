@@ -83,7 +83,6 @@ let authentication =
   let bewit_request =
     { ``method`` = GET
       uri        = uri_builder.Uri
-      header     = None
       host       = None
       port       = None }
 
@@ -116,7 +115,6 @@ let authentication =
     testCase "should successfully authenticate a request (last param)" <| fun _ ->
       { ``method`` = GET
         uri        = Uri "/resource/4?a=1&b=2&bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
-        header     = None
         host       = Some "example.com"
         port       = Some 8080us }
       |> Server.authenticate_bewit settings
