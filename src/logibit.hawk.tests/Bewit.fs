@@ -11,7 +11,6 @@ open logibit.hawk.Bewit
 
 open logibit.hawk.Tests.Shared
 
-
 let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
 
 let timestamp = Instant.FromSecondsSinceUnixEpoch 123456789L
@@ -25,6 +24,31 @@ let creds_inner =
     key       = "2983d45yun89q"
     algorithm = SHA256 }
 
+[<Tests>]
+let ``bewit generation`` =
+  let seconds i = Duration.FromSeconds i
+
+  testList "Bewit.generate" [
+    testCase "it returns a valid bewit value" <| fun _ ->
+      Assert.Equal("test", "0", "1") 
+    testCase "returns a valid bewit value (explicit port)" <| fun _ ->
+      let b = Bewit.generate' "https://example.com:8080/somewhere/over/the/rainbow"
+                             { BewitOptions.credentials = creds_inner
+                               ttl                     = Duration.FromSeconds 3L
+                               clock                   = clock
+                               localtime_offset        = ts 1356420407232L - clock.Now
+                               ext                     = Some "xandyandz" }
+      Assert.Equal("bewit should generate correctly",
+                   "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
+                   b)
+  ]
+
+[<Tests>]
+let ``encoding tests`` =
+  testCase "it should encode and decode a uri to match the original" <| fun _ ->
+    let test_uri = "http://example.com:80/resource/4?a=1&b=2"
+    Assert.Equal("return value", test_uri, (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) test_uri)
+
 let settings =
   { BewitSettings.clock = clock
     logger              = Logging.NoopLogger
@@ -33,43 +57,7 @@ let settings =
     creds_repo          = fun id -> Choice1Of2 (creds_inner, "steve") }
 
 [<Tests>]
-let temp =
-  let seconds i = Duration.FromSeconds i
-
-  testList "Bewit.generate" [
-    testCase "returns a valid bewit value (explicit port)" <| fun _ ->
-      let b = Bewit.generate "https://example.com:8080/somewhere/over/the/rainbow"
-                        { BewitOptions.credentials = creds_inner
-                          ttl = Duration.FromSeconds 3L
-                          localtime_offset = ts 1356420407232L - settings.clock.Now
-                          ext = Some "xandyandz" }
-      Assert.Equal("bewit should generate correctly",
-                   "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
-                   b)
-  ]
-
-[<Tests>]
-let encoding_tests =
-  testCase "it should encode and decode a uri to match the original" <| fun _ ->
-    let test_uri = "http://example.com:80/resource/4?a=1&b=2"
-    Assert.Equal("return value", test_uri, (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) test_uri)
-
-
-[<Tests>]
-let getBewit =
-
-  let credentials =
-    { id        = "123456"
-      key       = "2983d45yun89q"
-      algorithm = SHA256 }
-
-  testList "bewit tests" [
-    testCase "it returns a valid bewit value" <| fun _ ->
-      Assert.Equal("test", "0", "1") 
-  ]
-
-[<Tests>]
-let uri =
+let authentication =
   let uri = "http://example.com:80/resource/4?a=1&b=2"
 
   let bewit_request =
