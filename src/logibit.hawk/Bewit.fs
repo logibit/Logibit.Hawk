@@ -106,8 +106,8 @@ module internal Impl =
 
   let decode_from_base64 (req : BewitRequest) =
     req.uri.Query.Split '&'
-    |> Array.tryFind (fun x -> x.StartsWith("bewit="))
-    |> Option.map (fun x -> x.Substring("bewit=".Length))
+    |> Array.tryFind (fun x -> x.Contains("bewit="))
+    |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
     |> Option.map ModifiedBase64Url.decode
     |> Choice.of_option
         (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))

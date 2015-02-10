@@ -133,9 +133,9 @@ let authentication =
 
     testCase "should successfully authenticate a request (last param)" <| fun _ ->
       { ``method`` = GET
-        uri        = Uri "/resource/4?a=1&b=2&bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
-        host       = Some "example.com"
-        port       = Some 8080us }
+        uri        = Uri "http://example.com/resource/4?a=1&b=2&bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
+        host       = None
+        port       = None }
       |> Server.authenticate_bewit settings
       |> ensure_value
       |> fun (attrs, _, user) ->
@@ -144,9 +144,9 @@ let authentication =
 
     testCase "should successfully authenticate a request (first param)" <| fun _ ->
       { ``method`` = GET
-        uri        = Uri "/resource/4?bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ&a=1&b=2"
-        host       = Some "example.com"
-        port       = Some 8080us }
+        uri        = Uri "http://example.com/resource/4?bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ&a=1&b=2"
+        host       = None
+        port       = None }
       |> Server.authenticate_bewit settings
       |> ensure_value
       |> fun (attrs, _, user) ->
@@ -155,9 +155,9 @@ let authentication =
 
     testCase "should successfully authenticate a request (only param)" <| fun _ ->
       { ``method`` = GET
-        uri        = Uri "/resource/4?bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
-        host       = Some "example.com"
-        port       = Some 8080us }
+        uri        = Uri "http://example.com/resource/4?bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
+        host       = None
+        port       = None }
       |> Server.authenticate_bewit settings
       |> ensure_value
       |> fun (attrs, _, user) ->
