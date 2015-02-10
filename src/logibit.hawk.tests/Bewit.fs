@@ -101,10 +101,8 @@ let authentication =
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with
-        | Some ext ->
-          Assert.Equal("return value", "some-app-data", ext)
-        | None ->
-          Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
+        | Some ext -> Assert.Equal("return value", "some-app-data", ext)
+        | None     -> Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
         Assert.Equal("return value", "steve", user)
 
     testCase "it should generate a bewit then succesfully authenticate it (no ext)" <| fun _ ->
