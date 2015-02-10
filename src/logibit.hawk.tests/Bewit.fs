@@ -77,7 +77,7 @@ let settings =
 
 [<Tests>]
 let authentication =
-  let uri = "http://example.com:80/resource/4?a=1&b=2"
+  let uri_ = "http://example.com/resource/4?a=1&b=2"
 
   let bewit_request =
     { ``method`` = GET
@@ -88,7 +88,13 @@ let authentication =
 
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
-      Server.authenticate_bewit settings {bewit_request with header = Option.Some "ext=\"some-app-data\"" }
+      let b = Bewit.generate' uri_
+                             { BewitOptions.credentials = creds_inner
+                               ttl                      = Duration.FromSeconds 300L
+                               clock                    = clock
+                               local_clock_offset       = ts 1356420407232L - clock.Now
+                               ext                      = Some "some-app-data" }
+      Server.authenticate_bewit settings {bewit_request with uri = Uri (uri_ + "&bewit=" + b)}
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with
