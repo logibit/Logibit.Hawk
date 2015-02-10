@@ -62,6 +62,7 @@ type HeaderError =
   | InvalidUri
   | InvalidMissingOptions of string // what things is missing?
   | InvalidCredentialObject of string // what thing is missing?
+  | InvalidTimeStamp of Instant // what thing is missing?
 
 module Validation =
   let validate_credentials = function
@@ -83,6 +84,9 @@ module Validation =
                            (pars : ClientOptions)
                            : Choice<unit, HeaderError>  =
     validate_credentials pars.credentials
+
+// Generate a bewit value for a given URI
+let get_bewit uri = uri
 
 let calc_parameter (credentials : Credentials) (artifacts : FullAuth) (mac : string) =
   String.Concat
