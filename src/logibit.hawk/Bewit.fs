@@ -18,9 +18,14 @@ type BewitOptions =
     /// or zero otherwise.
     localtime_offset : Duration
 
+    clock            : IClock
+
     ext              : string option }
 
-let generate uri (opts : BewitOptions) = Client.get_bewit uri
+let generate uri (opts : BewitOptions) =
+  let now = opts.clock.Now
+
+  ""
 
 let authenticate (settings : BewitSettings<'a>) (request : BewitRequest) =
   Server.authenticate_bewit settings request

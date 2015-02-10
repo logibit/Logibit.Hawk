@@ -85,9 +85,6 @@ module Validation =
                            : Choice<unit, HeaderError>  =
     validate_credentials pars.credentials
 
-// Generate a bewit value for a given URI
-let get_bewit uri = uri
-
 let calc_parameter (credentials : Credentials) (artifacts : FullAuth) (mac : string) =
   String.Concat
     [ yield sprintf @"id=""%s""" credentials.id
