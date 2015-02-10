@@ -11,16 +11,16 @@ open logibit.hawk.Types
 
 type BewitOptions =
   { /// Credentials to generate the bewit with
-    credentials      : Credentials
+    credentials        : Credentials
 
-    ttl              : Duration
+    ttl                : Duration
     /// Time offset to sync with server time (ignored if timestamp provided),
     /// or zero otherwise.
     local_clock_offset : Duration
 
-    clock            : IClock
+    clock              : IClock
 
-    ext              : string option }
+    ext                : string option }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitOptions =
