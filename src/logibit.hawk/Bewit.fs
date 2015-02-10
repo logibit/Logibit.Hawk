@@ -14,8 +14,9 @@ type BewitOptions =
     credentials      : Credentials
 
     ttl              : Duration
-    // Time offset to sync with server time (ignored if timestamp provided)
-    localtime_offset : Duration option
+    /// Time offset to sync with server time (ignored if timestamp provided),
+    /// or zero otherwise.
+    localtime_offset : Duration
 
     ext              : string option }
 
