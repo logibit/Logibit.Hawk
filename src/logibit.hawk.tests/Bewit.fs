@@ -49,6 +49,17 @@ let ``bewit generation`` =
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
                    b)
+
+    testCase "returns a valid bewit value (None ext)" <| fun _ ->
+      let b = Bewit.generate' "https://example.com/somewhere/over/the/rainbow"
+                             { BewitOptions.credentials = creds_inner
+                               ttl                      = Duration.FromSeconds 300L
+                               clock                    = clock
+                               local_clock_offset       = ts 1356420407232L - clock.Now
+                               ext                      = None }
+      Assert.Equal("bewit should generate correctly",
+                   "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c",
+                   b)
   ]
 
 [<Tests>]

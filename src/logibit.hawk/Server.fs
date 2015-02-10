@@ -438,18 +438,16 @@ let authenticate_payload (payload : byte [])
   let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
   String.eq_ord_cnst_time calc_hash given_hash
 
-
-
 let decode_bewit_from_base64 (req : BewitRequest) =
-    if (req.uri.ToString().Contains("bewit=")) then
-      let bewit_start = req.uri.ToString().IndexOf("bewit=") + 6
-      let uri = ModifiedBase64Url.decode (req.uri.ToString().Substring(bewit_start))
-      Choice1Of2 (uri)
-    else
-      Choice2Of2 (DecodeError ("Could not decode from base64. uri:" + req.uri.ToString()))
+  if (req.uri.ToString().Contains("bewit=")) then
+    let bewit_start = req.uri.ToString().IndexOf("bewit=") + 6
+    let uri = ModifiedBase64Url.decode (req.uri.ToString().Substring(bewit_start))
+    Choice1Of2 (uri)
+  else
+    Choice2Of2 (DecodeError ("Could not decode from base64. uri:" + req.uri.ToString()))
 
-/// Parse the bewit header into key-value pairs in the form
-/// of a `Map<string, string>`.
+/// Parse the bewit header into key-value pairs in the form of a
+/// `Map<string, string>`.
 let parse_bewit_header (header : string) =
 
   let four_split header =

@@ -12,14 +12,14 @@ open logibit.hawk.Types
 type BewitOptions =
   { /// Credentials to generate the bewit with
     credentials        : Credentials
-
+    /// For how long the bewit is valid.
     ttl                : Duration
     /// Time offset to sync with server time (ignored if timestamp provided),
     /// or zero otherwise.
     local_clock_offset : Duration
-
+    /// The clock to use to find the time for the calculation of the bewit.
     clock              : IClock
-
+    /// An optional ext parameter.
     ext                : string option }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -58,6 +58,8 @@ let generate (uri : Uri) (opts : BewitOptions) =
   let raw = sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
   Encoding.ModifiedBase64Url.encode raw
 
+/// Generate the Bewit from a string-uri. The string passed must be possible to
+/// parse into a URI.
 let generate' (uri : string) =
   generate (Uri uri)
 

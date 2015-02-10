@@ -64,6 +64,9 @@ module UTF8 =
   let bytes (s : string) =
     Encoding.UTF8.GetBytes s
 
+  let string (bs : byte []) =
+    Encoding.UTF8.GetString bs
+
 type Writer<'a> =
   { state : 'a }
 
