@@ -30,11 +30,20 @@ let ``bewit generation`` =
 
   testList "Bewit.generate" [
     testCase "it returns a valid bewit value" <| fun _ ->
-      Assert.Equal("test", "0", "1") 
+      let b = Bewit.generate' "https://example.com/somewhere/over/the/rainbow"
+                             { BewitOptions.credentials = creds_inner
+                               ttl                     = Duration.FromSeconds 300L
+                               clock                   = clock
+                               localtime_offset        = ts 1356420407232L - clock.Now
+                               ext                     = Some "xandyandz" }
+      Assert.Equal("bewit should generate correctly",
+                   "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6",
+                   b)
+
     testCase "returns a valid bewit value (explicit port)" <| fun _ ->
       let b = Bewit.generate' "https://example.com:8080/somewhere/over/the/rainbow"
                              { BewitOptions.credentials = creds_inner
-                               ttl                     = Duration.FromSeconds 3L
+                               ttl                     = Duration.FromSeconds 300L
                                clock                   = clock
                                localtime_offset        = ts 1356420407232L - clock.Now
                                ext                     = Some "xandyandz" }

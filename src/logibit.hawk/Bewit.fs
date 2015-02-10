@@ -53,7 +53,7 @@ let generate (uri : Uri) (opts : BewitOptions) =
   let ext = opts.ext |> Option.or_default ""
   // Construct bewit: id\exp\mac\ext
   let raw = opts.credentials.id + "\\" + exp + "\\" + mac + "\\" + ext
-  Encoding.ModifiedBase64Url.decode raw
+  Encoding.ModifiedBase64Url.encode raw
 
 let generate' (uri : string) =
   generate (Uri uri)
