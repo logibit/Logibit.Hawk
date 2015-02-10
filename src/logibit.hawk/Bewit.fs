@@ -6,7 +6,6 @@ open NodaTime
 
 open logibit.hawk
 open logibit.hawk.Logging
-open logibit.hawk.Server
 open logibit.hawk.Types
 
 type BewitOptions =
@@ -62,6 +61,3 @@ let generate (uri : Uri) (opts : BewitOptions) =
 /// parse into a URI.
 let generate' (uri : string) =
   generate (Uri uri)
-
-let authenticate (settings : BewitSettings<'a>) (request : BewitRequest) =
-  Server.authenticate_bewit settings request

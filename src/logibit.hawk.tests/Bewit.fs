@@ -88,7 +88,7 @@ let authentication =
 
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
-      Bewit.authenticate settings {bewit_request with header = Option.Some "ext=\"some-app-data\"" }
+      Server.authenticate_bewit settings {bewit_request with header = Option.Some "ext=\"some-app-data\"" }
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with
@@ -99,7 +99,7 @@ let authentication =
         Assert.Equal("return value", "steve", user)
 
     testCase "it should generate a bewit then succesfully authenticate it (no ext)" <| fun _ ->
-      Bewit.authenticate settings bewit_request
+      Server.authenticate_bewit settings bewit_request
       |> ensure_value
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
@@ -110,7 +110,7 @@ let authentication =
         header     = None
         host       = Some "example.com"
         port       = Some 8080us }
-      |> Bewit.authenticate settings
+      |> Server.authenticate_bewit settings
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with

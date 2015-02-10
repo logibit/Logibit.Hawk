@@ -141,25 +141,41 @@ Please have a look at [Releases](https://github.com/logibit/logibit.hawk/release
 This is the public API of the library. It mimics the API of Hawk.js - the
 [reference implementation](https://github.com/hueniverse/hawk/blob/master/lib/client.js).
 
+### `logibit.hawk.Bewit`
+
+These functions are available to creating and verifying Bewits.
+
+ - [ ] generate - generate a new bewit from credentials, a uri and an optional
+       ext field.
+ - [ ] generate' - generate a new bewit from credentials, a string uri and an
+       optional ext field.
+ - [ ] authenticate - verify a given bewit
+
+#### `authenticate` details
+
+TBD - docs.
+
 ### `logibit.hawk.Client`
 
 These functions are available, checked functions are implemented
 
  - [x] header - generate a request header for server to authenticate
+ - [x] bewit - delegates to Bewit.generate
  - [ ] authenticate - test that server response is authentic, see
    [Response Payload Validation](https://github.com/hueniverse/hawk#response-payload-validation).
- - [ ] bewet - generate a GET-table URI from an input uri
  - [ ] message - generate an authorisation string for a message
 
 ### `logibit.hawk.Server`
 
  - [x] authenticate - authenticate a request
  - [x] authenticate_payload - authenticate the payload of a request - assumes
-   you first have called `authenticate` to get credentials. [Payload Validation](https://github.com/hueniverse/hawk#payload-validation)
+   you first have called `authenticate` to get credentials.
+   [Payload Validation](https://github.com/hueniverse/hawk#payload-validation)
  - [ ] authenticate_payload_hash
  - [ ] header - generate a server-header for the client to authenticate
  - [ ] authenticate_bewit - authenticate a client-supplied bewit, see [Bewit
    Usage Example](https://github.com/hueniverse/hawk#bewit-usage-example).
+   TODO: delegate to Bewit.authenticate
  - [ ] authenticate_message - authenticate a client-supplied message
 
 #### `authenticate` details

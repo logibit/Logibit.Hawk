@@ -169,3 +169,5 @@ let set_auth_header (req : HttpRequestMessage) (header_data : HeaderData) =
   let header = new AuthenticationHeaderValue("Hawk", header_data.parameter)
   req.Headers.Authorization <- header
   req
+
+let bewit = Bewit.generate
