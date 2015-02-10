@@ -1,4 +1,4 @@
-﻿module logibit.hawk.Tests.Uri
+module logibit.hawk.Tests.Uri
 
 open System
 open Fuchu
@@ -13,12 +13,9 @@ open logibit.hawk.Tests.Shared
 
 [<Tests>]
 let encoding_tests =
-  testCase "It should encode and decode a uri to match the original" <| fun _ ->
+  testCase "it should encode and decode a uri to match the original" <| fun _ ->
     let test_uri = "http://example.com:80/resource/4?a=1&b=2"
-    ModifiedBase64Url.encode test_uri
-    |> ModifiedBase64Url.decode
-    |> fun url ->
-      Assert.Equal("return value", test_uri, url)
+    Assert.Equal("return value", test_uri, (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) test_uri)
 
 [<Tests>]
 let getBewit =
@@ -32,8 +29,6 @@ let getBewit =
     testCase "it returns a valid bewit value" <| fun _ ->
       Assert.Equal("test", "0", "1") 
   ]
-
-
 
 [<Tests>]
 let uri =
@@ -63,7 +58,7 @@ let uri =
       header     = None
       host       = None
       port       = None }
-  
+
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
       authenticate settings {bewit_request with header = Option.Some "ext=\"some-app-data\"" }
@@ -97,5 +92,5 @@ let uri =
         | None ->
           Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
         Assert.Equal("return value", "steve", user)
-    
+
   ]
