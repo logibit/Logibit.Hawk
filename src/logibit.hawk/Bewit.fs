@@ -33,7 +33,6 @@ module BewitOptions =
                 clock              = clock
                 ext                = ext } =
     { credentials  = creds
-      /// The # seconds since unix epoch
       timestamp    = exp
       nonce        = ""
       ``method``   = GET

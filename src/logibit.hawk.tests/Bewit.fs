@@ -11,13 +11,12 @@ open logibit.hawk.Bewit
 
 open logibit.hawk.Tests.Shared
 
-let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
-
-let timestamp = Instant.FromSecondsSinceUnixEpoch 123456789L
+let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
 
 let clock =
-  { new IClock with
-      member x.Now = timestamp }
+  //{ new IClock with
+  //   member x.Now = timestamp }
+  SystemClock.Instance
 
 let creds_inner =
   { id        = "123456"
