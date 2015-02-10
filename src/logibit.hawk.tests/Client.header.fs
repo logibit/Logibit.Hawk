@@ -14,16 +14,16 @@ open logibit.hawk.Tests.Shared
 let client =
 
   let valid_sha1_opts =
-    { credentials      = credentials SHA1
-      ext              = Some "Bazinga!"
-      timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
-      localtime_offset = None
-      nonce            = Some "Ygvqdz"
-      payload          = Some (UTF8.bytes "something to write about")
-      content_type     = None
-      hash             = None
-      app              = None
-      dlg              = None }
+    { credentials        = credentials SHA1
+      ext                = Some "Bazinga!"
+      timestamp          = Instant.FromSecondsSinceUnixEpoch 1353809207L
+      local_clock_offset = None
+      nonce              = Some "Ygvqdz"
+      payload            = Some (UTF8.bytes "something to write about")
+      content_type       = None
+      hash               = None
+      app                = None
+      dlg                = None }
 
   testList "#header" [
     testCase "returns a valid authorization header (sha1)" <| fun _ ->
@@ -40,16 +40,16 @@ let client =
 
     testCase "returns a valid authorization header (sha256, content type)" <| fun _ ->
       let res =
-        { credentials      = credentials SHA256
-          ext              = Some "Bazinga!"
-          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = Some (UTF8.bytes "something to write about")
-          hash             = None
-          content_type     = Some "text/plain"
-          app              = None
-          dlg              = None }
+        { credentials        = credentials SHA256
+          ext                = Some "Bazinga!"
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1353809207L
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = Some (UTF8.bytes "something to write about")
+          hash               = None
+          content_type       = Some "text/plain"
+          app                = None
+          dlg                = None }
         |> Client.header' "https://example.net/somewhere/over/the/rainbow" POST
         |> ensure_value
 
@@ -63,14 +63,14 @@ let client =
 
     testCase "returns a valid authorization header (no ext)" <| fun _ ->
       let res =
-        { credentials      = credentials SHA256
-          ext              = None
-          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = Some (UTF8.bytes "something to write about")
-          hash             = None
-          content_type     = Some "text/plain"
+        { credentials        = credentials SHA256
+          ext                = None
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1353809207L
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = Some (UTF8.bytes "something to write about")
+          hash               = None
+          content_type       = Some "text/plain"
           app          = None
           dlg          = None }
         |> Client.header' "https://example.net/somewhere/over/the/rainbow" POST
@@ -84,16 +84,16 @@ let client =
 
     testCase "returns a valid authorization header (empty payload string)" <| fun _ ->
       let res =
-        { credentials      = credentials SHA256
-          ext              = None
-          timestamp        = Instant.FromSecondsSinceUnixEpoch 1353809207L
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = Some [||]
-          hash             = None
-          content_type     = Some "text/plain"
-          app              = None
-          dlg              = None }
+        { credentials        = credentials SHA256
+          ext                = None
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1353809207L
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = Some [||]
+          hash               = None
+          content_type       = Some "text/plain"
+          app                = None
+          dlg                = None }
         |> Client.header' "https://example.net/somewhere/over/the/rainbow" POST
         |> ensure_value
       Assert.Equal("header should eq",
@@ -102,16 +102,16 @@ let client =
 
     testCase "returns a valid authorization header (pre hashed payload)" <| fun _ ->
       let opts =
-        { credentials  = credentials SHA256
-          ext          = None
-          timestamp    = Instant.FromSecondsSinceUnixEpoch 1353809207L
-          localtime_offset = None
-          nonce        = Some "Ygvqdz"
-          payload      = Some (UTF8.bytes "something to write about")
-          hash         = None
-          content_type = Some "text/plain"
-          app          = None
-          dlg          = None }
+        { credentials        = credentials SHA256
+          ext                = None
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1353809207L
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = Some (UTF8.bytes "something to write about")
+          hash               = None
+          content_type       = Some "text/plain"
+          app                = None
+          dlg                = None }
       let hash = Crypto.calc_payload_hash' opts.payload SHA256 opts.content_type
       let res =
         Client.header' "https://example.net/somewhere/over/the/rainbow" POST
@@ -142,15 +142,15 @@ let faced_in_the_wild =
             { algorithm = SHA256
               id = "principals-f5cd484b3cbf455da0405a1d34a33580"
               key = "21s81hn605334qgqcpt8drkuattfcug3jthyzpfui63" }
-          ext          = None
-          timestamp    = Instant.FromSecondsSinceUnixEpoch 1420622994L
-          localtime_offset = None
-          nonce        = Some "MEyb64"
-          payload      = Some (UTF8.bytes "email=henrik%40haf.se&password=a&timestamp=2015-01-05T14%3A57%3A56Z&digest=3C830EC51AD9001BA1A69D84583002C82E7F67146DA2774F14E1F31C8B9DF552")
-          hash         = None
-          content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
-          app          = None
-          dlg          = None }
+          ext                = None
+          timestamp          = Instant.FromSecondsSinceUnixEpoch 1420622994L
+          local_clock_offset = None
+          nonce              = Some "MEyb64"
+          payload            = Some (UTF8.bytes "email=henrik%40haf.se&password=a&timestamp=2015-01-05T14%3A57%3A56Z&digest=3C830EC51AD9001BA1A69D84583002C82E7F67146DA2774F14E1F31C8B9DF552")
+          hash               = None
+          content_type       = Some "application/x-www-form-urlencoded; charset=UTF-8"
+          app                = None
+          dlg                = None }
       let res =
         Client.header' "http://localhost:8080/api/accounts/mark_account_verified" PUT opts
         |> ensure_value

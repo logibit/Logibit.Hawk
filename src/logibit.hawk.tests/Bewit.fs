@@ -32,10 +32,10 @@ let ``bewit generation`` =
     testCase "it returns a valid bewit value" <| fun _ ->
       let b = Bewit.generate' "https://example.com/somewhere/over/the/rainbow"
                              { BewitOptions.credentials = creds_inner
-                               ttl                     = Duration.FromSeconds 300L
-                               clock                   = clock
-                               localtime_offset        = ts 1356420407232L - clock.Now
-                               ext                     = Some "xandyandz" }
+                               ttl                      = Duration.FromSeconds 300L
+                               clock                    = clock
+                               local_clock_offset       = ts 1356420407232L - clock.Now
+                               ext                      = Some "xandyandz" }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6",
                    b)
@@ -43,10 +43,10 @@ let ``bewit generation`` =
     testCase "returns a valid bewit value (explicit port)" <| fun _ ->
       let b = Bewit.generate' "https://example.com:8080/somewhere/over/the/rainbow"
                              { BewitOptions.credentials = creds_inner
-                               ttl                     = Duration.FromSeconds 300L
-                               clock                   = clock
-                               localtime_offset        = ts 1356420407232L - clock.Now
-                               ext                     = Some "xandyandz" }
+                               ttl                      = Duration.FromSeconds 300L
+                               clock                    = clock
+                               local_clock_offset       = ts 1356420407232L - clock.Now
+                               ext                      = Some "xandyandz" }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
                    b)

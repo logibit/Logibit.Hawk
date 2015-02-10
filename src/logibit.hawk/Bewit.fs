@@ -16,7 +16,7 @@ type BewitOptions =
     ttl              : Duration
     /// Time offset to sync with server time (ignored if timestamp provided),
     /// or zero otherwise.
-    localtime_offset : Duration
+    local_clock_offset : Duration
 
     clock            : IClock
 
@@ -28,10 +28,10 @@ module BewitOptions =
   let to_auth (now : Instant)
               (uri : Uri)
               exp
-              { credentials      = creds
-                localtime_offset = offset
-                clock            = clock
-                ext              = ext } =
+              { credentials        = creds
+                local_clock_offset = offset
+                clock              = clock
+                ext                = ext } =
     { credentials  = creds
       /// The # seconds since unix epoch
       timestamp    = exp
@@ -47,8 +47,12 @@ module BewitOptions =
 
 let generate (uri : Uri) (opts : BewitOptions) =
   let now = opts.clock.Now
-  let exp = now + opts.ttl
-  let mac = opts |> BewitOptions.to_auth now uri exp |> Crypto.calc_mac "bewit"
+  let now_with_offset = opts.clock.Now + opts.local_clock_offset // before computing
+  let exp = now_with_offset + opts.ttl
+  let mac =
+    opts
+    |> BewitOptions.to_auth now_with_offset uri exp
+    |> Crypto.calc_mac "bewit"
   let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.or_default ""
   // Construct bewit: id\exp\mac\ext

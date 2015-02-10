@@ -14,39 +14,39 @@ open logibit.hawk.Types
 
 type ClientOptions =
   { /// Credentials to the server
-    credentials      : Credentials
+    credentials        : Credentials
     /// A pre-calculated timestamp
-    timestamp        : Instant
+    timestamp          : Instant
     /// A pre-generated nonce, or otherwise a random string is generated
-    nonce            : string option
+    nonce              : string option
     /// Payload content-type (ignored if hash provided)
-    content_type     : string option
+    content_type       : string option
     /// Application specific data sent via the ext attribute
-    ext              : string option
+    ext                : string option
     /// payload for body hash generation (ignored if hash provided)
-    payload          : byte[] option
+    payload            : byte[] option
     /// Pre-calculated payload hash, otherwise calculates the hash automatically
-    hash             : string option
+    hash               : string option
     // Time offset to sync with server time (ignored if timestamp provided)
-    localtime_offset : Duration option
+    local_clock_offset : Duration option
     // Oz application id
-    app              : string option
+    app                : string option
     // Oz delegated-by application id. Iff app is Some _.
-    dlg              : string option }
+    dlg                : string option }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ClientOptions =
   let mk' creds =
-    { credentials      = creds
-      timestamp        = SystemClock.Instance.Now
-      nonce            = None
-      content_type     = None
-      ext              = None
-      payload          = None
-      hash             = None
-      localtime_offset = None
-      app              = None
-      dlg              = None }
+    { credentials        = creds
+      timestamp          = SystemClock.Instance.Now
+      nonce              = None
+      content_type       = None
+      ext                = None
+      payload            = None
+      hash               = None
+      local_clock_offset = None
+      app                = None
+      dlg                = None }
 
 type HeaderData =
   { /// Hawk header value ("Hawk " + x.parameter)
