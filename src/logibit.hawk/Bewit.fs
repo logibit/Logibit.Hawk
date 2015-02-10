@@ -91,6 +91,9 @@ let parse (bewit : string) =
     |> BadArguments
     |> Choice2Of2
 
+let parse_base64  =
+  Encoding.ModifiedBase64Url.decode >> parse
+
 module internal Impl =
 
   let to_bewit_error key = function
@@ -122,13 +125,18 @@ let generate (uri : Uri) (opts : BewitOptions) =
   let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.or_default ""
   // Construct bewit: id\exp\mac\ext
-  let raw = sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
-  Encoding.ModifiedBase64Url.encode raw
+  sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
+
+let generate_base64 uri =
+  generate uri >> Encoding.ModifiedBase64Url.encode
 
 /// Generate the Bewit from a string-uri. The string passed must be possible to
 /// parse into a URI.
-let generate' (uri : string) =
+let generate_str (uri : string) =
   generate (Uri uri)
+
+let generate_str_base64 uri =
+  generate_str uri >> Encoding.ModifiedBase64Url.encode
 
 let authenticate (settings: BewitSettings<'a>) 
                  (req: BewitRequest) =
