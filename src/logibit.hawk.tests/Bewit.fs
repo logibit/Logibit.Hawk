@@ -98,7 +98,16 @@ let authentication =
   let uri =  "http://example.com/resource/4?a=1&b=2"
   let uri_builder = UriBuilder uri
 
-  let bewit_request =
+  let bewit_request () =
+    let bewit = Bewit.generate' uri
+                                { BewitOptions.credentials = creds_inner
+                                  ttl                      = Duration.FromSeconds 300L
+                                  clock                    = clock
+                                  local_clock_offset       = ts 1356420407232L - clock.Now
+                                  ext                      = Some "some-app-data" }
+
+    uri_builder.Query <- String.Join("&", [| uri_builder.Query; "bewit=" + bewit |])
+
     { ``method`` = GET
       uri        = uri_builder.Uri
       host       = None
@@ -107,16 +116,7 @@ let authentication =
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
 
-      let bewit = Bewit.generate' uri
-                                  { BewitOptions.credentials = creds_inner
-                                    ttl                      = Duration.FromSeconds 300L
-                                    clock                    = clock
-                                    local_clock_offset       = ts 1356420407232L - clock.Now
-                                    ext                      = Some "some-app-data" }
-
-      uri_builder.Query <- String.Join("&", [| uri_builder.Query; "bewit=" + bewit |])
-
-      Server.authenticate_bewit settings { bewit_request with uri = uri_builder.Uri }
+      Server.authenticate_bewit settings (bewit_request ())
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with
@@ -125,7 +125,7 @@ let authentication =
         Assert.Equal("return value", "steve", user)
 
     testCase "it should generate a bewit then succesfully authenticate it (no ext)" <| fun _ ->
-      Server.authenticate_bewit settings bewit_request
+      Server.authenticate_bewit settings (bewit_request ())
       |> ensure_value
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
