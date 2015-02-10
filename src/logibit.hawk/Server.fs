@@ -10,7 +10,7 @@ open logibit.hawk.Encoding
 open logibit.hawk.Logging
 open logibit.hawk.Types
 
-open Choice
+open ChoiceOperators
 
 /// The errors that may arise from trying to fetch credentials.
 type CredsError =
@@ -65,29 +65,6 @@ module AuthError =
 
   /// Use constructor as function
   let from_nonce_error = NonceError
-
-type BewitError =
-  // Could not decode bewit from modified base64
-  | DecodeError of message: string
-  // Wrong number of arguments after decoding
-  | BadArguments of arguments_given: string
-  | BewitCredsError of BewitCredsError
-  /// A Bewit attribute cannot be turned into something the computer
-  /// understands
-  | InvalidBewitAttribute of name:string * message:string
-  /// A required Hawk attribute is missing from the request header
-  | MissingBewitAttribute of name:string
-  | Other of string
-with
-  override x.ToString() =
-    match x with
-    | Other s -> s
-    | x -> sprintf "%A" x
-
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module BewitError =
-  /// Use constructor as function
-  let from_creds_error = BewitError.BewitCredsError
 
 /// The pieces of the request that the `authenticate` method cares about.
 type Req =
@@ -219,9 +196,6 @@ module internal Impl =
   let private to_auth_err key = function
     | ParseError msg -> InvalidAttribute (key, msg)
 
-  let private to_bewit_auth_err key = function
-    | ParseError msg -> InvalidBewitAttribute (key, msg)
-
   let starts_with (literal_prefix : string) (subject : string) =
     if subject.StartsWith literal_prefix then
       Choice1Of2 ()
@@ -261,46 +235,9 @@ module internal Impl =
     | None ->
       Choice.lift w
 
-  let bewit_req_attr
-    (m : Map<_, 'v>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b>))
-    (w : Writer<'a>)
-    : Choice<Writer<'a>, BewitError> =
-
-    match m |> Map.tryFind key with
-    | Some value ->
-      parser value
-      >>- Writer.bind write w
-      >>@ to_bewit_auth_err key
-    | None ->
-      Choice2Of2 (MissingBewitAttribute key)
-
-  let bewit_opt_attr
-    (m : Map<_, _>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b option>))
-    (w : Writer<'a>)
-    : Choice<Writer<_>, BewitError> =
-    
-    match m |> Map.tryFind key with
-    | Some value ->
-      match parser value with
-      | Choice1Of2 value' ->
-        Choice1Of2 (Writer.bind write w (Some value'))
-      | Choice2Of2 err ->
-        Choice1Of2 (Writer.bind write w None)
-    | None ->
-      Choice.lift w
-
   let validate_credentials creds_repo (attrs : HawkAttributes) =
     creds_repo attrs.id
     >>@ AuthError.from_creds_error
-    >>- fun cs -> attrs, cs
-
-  let bewit_validate_credentials creds_repo (attrs : BewitAttributes) =
-    creds_repo attrs.id
-    >>@ BewitError.from_creds_error
     >>- fun cs -> attrs, cs
 
   let validate_mac req (attrs, cs) =
@@ -438,51 +375,12 @@ let authenticate_payload (payload : byte [])
   let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
   String.eq_ord_cnst_time calc_hash given_hash
 
-let decode_bewit_from_base64 (req : BewitRequest) =
-  if (req.uri.ToString().Contains("bewit=")) then
-    let bewit_start = req.uri.ToString().IndexOf("bewit=") + 6
-    let uri = ModifiedBase64Url.decode (req.uri.ToString().Substring(bewit_start))
-    Choice1Of2 (uri)
-  else
-    Choice2Of2 (DecodeError ("Could not decode from base64. uri:" + req.uri.ToString()))
-
-/// Parse the bewit string into key-value pairs in the form of a
-/// `Map<string, string>`.
-let parse_bewit (bewit : string) =
-
-  let four_split header =
-    match header |> Regex.split "[\\\]" with
-    | xs when xs.Length = 4 ->
-      Choice1Of2 xs
-    | xs ->
-      sprintf "wrong number of arguments in string. Should be 4 but given %d" xs.Length
-      |> Choice2Of2
-
-  four_split bewit
-  >>@ BadArguments
-  >>- (List.fold (fun memo part ->
-        match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
-        | Some groups ->
-          memo |> Map.add groups.["k"].Value groups.["v"].Value
-        | None -> memo
-        ) Map.empty)
 
 /// Authenticate bewit uri
 let authenticate_bewit (settings: BewitSettings<'a>) 
                        (req: BewitRequest) =
-  decode_bewit_from_base64 req
-  >>= parse_bewit // parse bewit string
-  >>= (fun parts ->
-    Writer.lift (BewitAttributes.mk req.``method`` req.uri)
-    >>~ bewit_req_attr parts "id" (Parse.id, BewitAttributes.id_)
-    >>= bewit_req_attr parts "exp" (Parse.id, BewitAttributes.exp_)
-    >>= bewit_req_attr parts "mac" (Parse.id, BewitAttributes.mac_)
-    >>= bewit_opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)
-    >>- Writer.``return``
-    >>= bewit_validate_credentials settings.creds_repo
-    >>- map_result)
+  Bewit.authenticate settings req
 
 // TODO: authenticate_payload_hash
 // TODO: header
-// TODO: authenticate_bewit
 // TODO: authenticate_message

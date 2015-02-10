@@ -62,7 +62,7 @@ let HawkDataKey = "logibit.hawk.data"
 ///                   { req with port = Some 8080us }))
 type ReqFactory<'a> = Settings<'a> -> HttpContext -> Choice<Req, string>
 
-open logibit.hawk.Choice // Choice's binding of >>=
+open logibit.hawk.ChoiceOperators // Choice's binding of >>=
 
 let bind_req (s : Settings<'a>)
              ({ request = s_req } as ctx)

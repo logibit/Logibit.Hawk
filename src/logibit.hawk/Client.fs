@@ -9,7 +9,7 @@ open NodaTime
 open logibit.hawk
 open logibit.hawk.Logging
 
-open Choice
+open ChoiceOperators
 open logibit.hawk.Types
 
 type ClientOptions =
