@@ -96,7 +96,7 @@ let authentication =
                                     clock                    = clock
                                     local_clock_offset       = ts 1356420407232L - clock.Now
                                     ext                      = Some "some-app-data" }
-      uri_builder.Query <- String.Join("&", [| uri_builder.Query; bewit |])
+      uri_builder.Query <- String.Join("&", [| uri_builder.Query; "bewit="; bewit |])
       Server.authenticate_bewit settings { bewit_request with uri = uri_builder.Uri }
       |> ensure_value
       |> fun (attrs, _, user) ->
