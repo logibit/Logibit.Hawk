@@ -68,6 +68,23 @@ let ``encoding tests`` =
     let test_uri = "http://example.com:80/resource/4?a=1&b=2"
     Assert.Equal("return value", test_uri, (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) test_uri)
 
+[<Tests>]
+let ``parsing bewit parts`` =
+  testCase "can parse bewit from bewit token" <| fun _ ->
+    let b = Bewit.generate' "https://example.com/somewhere/over/the/rainbow"
+                           { BewitOptions.credentials = creds_inner
+                             ttl                      = Duration.FromSeconds 300L
+                             clock                    = clock
+                             local_clock_offset       = ts 1356420407232L - clock.Now
+                             ext                      = None }
+    match Server.parse_bewit_header b with
+    | Choice1Of2 map ->
+      Assert.Equal("has id", creds_inner.id, map |> Map.find "id")
+      Assert.NotEqual("has ext", "", map |> Map.find "ext")
+      Assert.Equal("has mac", "", map |> Map.find "mac")
+      Assert.Equal("has exp", "", map |> Map.find "exp")
+    | err ->
+      Tests.failtest "should have been able to parse the four token components"
 let settings =
   { BewitSettings.clock = clock
     logger              = Logging.NoopLogger

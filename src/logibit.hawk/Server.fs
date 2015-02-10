@@ -469,7 +469,7 @@ let parse_bewit (bewit : string) =
 
 /// Authenticate bewit uri
 let authenticate_bewit (settings: BewitSettings<'a>) 
-                      (req: BewitRequest) =
+                       (req: BewitRequest) =
   decode_bewit_from_base64 req
   >>= parse_bewit // parse bewit string
   >>= (fun parts ->
