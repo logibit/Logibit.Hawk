@@ -105,13 +105,13 @@ module internal Impl =
     >>- fun cs -> attrs, cs
 
   let decode_from_base64 (req : BewitRequest) =
-    if (req.uri.ToString().Contains("bewit=")) then
-      let bewit_start = req.uri.ToString().IndexOf("bewit=") + 6
-      let uri = ModifiedBase64Url.decode (req.uri.ToString().Substring(bewit_start))
-      Choice1Of2 uri
-    else
-      Choice2Of2 (DecodeError ("Could not decode from base64. uri:" + req.uri.ToString()))
-  
+    req.uri.Query.Split '&'
+    |> Array.tryFind (fun x -> x.StartsWith("bewit="))
+    |> Option.map (fun x -> x.Substring("bewit=".Length))
+    |> Option.map ModifiedBase64Url.decode
+    |> Choice.of_option
+        (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
+
   let map_result (a, (b, c)) = a, b, c
       
 let generate (uri : Uri) (opts : BewitOptions) =
