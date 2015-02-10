@@ -96,18 +96,18 @@ let settings =
 [<Tests>]
 let authentication =
   let uri =  "http://example.com/resource/4?a=1&b=2"
-  let uri_builder = UriBuilder uri
 
-  let bewit_request () =
-    let bewit = Bewit.generate' uri
-                                { BewitOptions.credentials = creds_inner
-                                  ttl                      = Duration.FromSeconds 300L
-                                  clock                    = clock
-                                  local_clock_offset       = ts 1356420407232L - clock.Now
-                                  ext                      = Some "some-app-data" }
-
+  let bewit_request f_inspect =
+    let uri_builder = UriBuilder uri
+    let opts =
+      { BewitOptions.credentials = creds_inner
+        ttl                      = Duration.FromSeconds 300L
+        clock                    = clock
+        local_clock_offset       = ts 1356420407232L - clock.Now
+        ext                      = Some "some-app-data" }
+      |> f_inspect
+    let bewit = Bewit.generate' uri opts
     uri_builder.Query <- String.Join("&", [| uri_builder.Query; "bewit=" + bewit |])
-
     { ``method`` = GET
       uri        = uri_builder.Uri
       host       = None
@@ -115,17 +115,14 @@ let authentication =
 
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
-
-      Server.authenticate_bewit settings (bewit_request ())
+      Server.authenticate_bewit settings (bewit_request id)
       |> ensure_value
       |> fun (attrs, _, user) ->
-        match attrs.ext with
-        | Some ext -> Assert.Equal("return value", "some-app-data", ext)
-        | None     -> Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
+        Assert.Equal("ext value", Some "some-app-data", attrs.ext)
         Assert.Equal("return value", "steve", user)
 
     testCase "it should generate a bewit then succesfully authenticate it (no ext)" <| fun _ ->
-      Server.authenticate_bewit settings (bewit_request ())
+      Server.authenticate_bewit settings (bewit_request (fun x -> { x with ext = None }))
       |> ensure_value
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)

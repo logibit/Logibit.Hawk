@@ -70,6 +70,10 @@ module BewitOptions =
       app          = None
       dlg          = None }
 
+  let ext_ =
+    (fun x -> x.ext),
+    (fun v (x : BewitOptions) -> { x with ext = v })
+
 /// Parse the bewit string into key-value pairs in the form of a
 /// `Map<string, string>`.
 let parse (bewit : string) =
