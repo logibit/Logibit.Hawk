@@ -193,7 +193,7 @@ module Settings =
 module internal Impl =
   open Parse
 
-  let private to_auth_err key = function
+  let to_auth_err key = function
     | ParseError msg -> InvalidAttribute (key, msg)
 
   let starts_with (literal_prefix : string) (subject : string) =
@@ -201,39 +201,6 @@ module internal Impl =
       Choice1Of2 ()
     else
       Choice2Of2 (String.Concat [ "String doesn't start with; "; literal_prefix ])
-
-  let req_attr
-    (m : Map<_, 'v>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b>))
-    (w : Writer<'a>)
-    : Choice<Writer<'a>, AuthError> =
-
-    match m |> Map.tryFind key with
-    | Some value ->
-      parser value
-      >>- Writer.bind write w
-      >>@ to_auth_err key
-
-    | None ->
-      Choice2Of2 (MissingAttribute key)
-
-  let opt_attr
-    (m : Map<_, _>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b option>))
-    (w : Writer<'a>)
-    : Choice<Writer<_>, AuthError> =
-    
-    match m |> Map.tryFind key with
-    | Some value ->
-      match parser value with
-      | Choice1Of2 value' ->
-        Choice1Of2 (Writer.bind write w (Some value'))
-      | Choice2Of2 err ->
-        Choice1Of2 (Writer.bind write w None)
-    | None ->
-      Choice.lift w
 
   let validate_credentials creds_repo (attrs : HawkAttributes) =
     creds_repo attrs.id
@@ -336,6 +303,9 @@ let authenticate (s : Settings<'a>)
         ] |> Map.ofList
       timestamp = now })
   |> Logger.debug s.logger
+
+  let req_attr m = Parse.req_attr MissingAttribute Impl.to_auth_err m
+  let opt_attr m = Parse.opt_attr m
 
   parse_header req.authorisation // parse header, unknown header values so far
   >>= fun header ->

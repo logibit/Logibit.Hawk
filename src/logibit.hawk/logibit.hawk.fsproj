@@ -54,8 +54,8 @@
     <Compile Include="Choice.fs" />
     <Compile Include="Logging.fs" />
     <Compile Include="Random.fs" />
-    <Compile Include="Parse.fs" />
     <Compile Include="Types.fs" />
+    <Compile Include="Parse.fs" />
     <Compile Include="Crypto.fs" />
     <Compile Include="Encoding.fs" />
     <Compile Include="Bewit.fs" />

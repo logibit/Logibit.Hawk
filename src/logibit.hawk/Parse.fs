@@ -6,6 +6,7 @@ open System.Globalization
 open NodaTime
 
 open logibit.hawk.Prelude
+open logibit.hawk.Types
 open Choice
 
 type ParseError = ParseError of string
@@ -34,4 +35,39 @@ let unix_sec_instant =
   >> (map (Instant.FromTicksSinceUnixEpoch))
 
 let id x = Choice1Of2 x
- 
+
+open ChoiceOperators
+
+let req_attr
+  f_missing
+  f_bad_parse
+  (m : Map<_, 'v>)
+  (key : string)
+  ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b>))
+  (w : Writer<'a>)
+  : Choice<Writer<'a>, 'TError> =
+
+  match m |> Map.tryFind key with
+  | Some value ->
+    parser value
+    >>- Writer.bind write w
+    >>@ f_bad_parse key
+  | None ->
+    Choice2Of2 (f_missing key)
+
+let opt_attr
+  (m : Map<_, _>)
+  (key : string)
+  ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b option>))
+  (w : Writer<'a>)
+  : Choice<Writer<_>, _> =
+
+  match m |> Map.tryFind key with
+  | Some value ->
+    match parser value with
+    | Choice1Of2 value' ->
+      Choice1Of2 (Writer.bind write w (Some value'))
+    | Choice2Of2 err ->
+      Choice1Of2 (Writer.bind write w None)
+  | None ->
+    Choice.lift w
