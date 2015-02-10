@@ -135,11 +135,7 @@ let authentication =
       |> Server.authenticate_bewit settings
       |> ensure_value
       |> fun (attrs, _, user) ->
-        match attrs.ext with
-        | Some ext ->
-          Assert.Equal("return value", "some-app-data", ext)
-        | None ->
-          Tests.failtest "Expected ext=\"some-app-data\" got \"None\""
+        Assert.Equal("ext value", Some "some-app-data", attrs.ext)
         Assert.Equal("return value", "steve", user)
 
     testCase "should successfully authenticate a request (first param)" <| fun _ ->
