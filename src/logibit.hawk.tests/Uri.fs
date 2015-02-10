@@ -20,6 +20,19 @@ let encoding_tests =
     |> fun url ->
       Assert.Equal("return value", test_uri, url)
 
+[<Tests>]
+let getBewit =
+
+  let credentials =
+    { id        = "123456"
+      key       = "2983d45yun89q"
+      algorithm = SHA256 }
+
+  testList "bewit tests" [
+    testCase "it returns a valid bewit value" <| fun _ ->
+      Assert.Equal("test", "0", "1") 
+  ]
+
 
 
 [<Tests>]
@@ -50,11 +63,8 @@ let uri =
       header     = None
       host       = None
       port       = None }
-    
+  
   testList "authentication" [
-    testCase "it should include id, exp and mac data in bewit encoding" <| fun _ ->
-      ()
-
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
       authenticate settings {bewit_request with header = Option.Some "ext=\"some-app-data\"" }
       |> ensure_value
