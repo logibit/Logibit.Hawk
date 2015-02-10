@@ -458,7 +458,7 @@ let parse_bewit (bewit : string) =
       sprintf "wrong number of arguments in string. Should be 4 but given %d" xs.Length
       |> Choice2Of2
 
-  four_split header
+  four_split bewit
   >>@ BadArguments
   >>- (List.fold (fun memo part ->
         match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
