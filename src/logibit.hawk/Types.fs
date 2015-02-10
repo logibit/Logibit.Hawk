@@ -4,6 +4,8 @@ open System
 
 open NodaTime
 
+open logibit.hawk.Logging
+
 type Lens<'a,'b> = ('a -> 'b) * ('b -> 'a -> 'a)
 
 type HttpMethod =
@@ -217,3 +219,125 @@ module FullAuth =
       ext          = a.ext
       app          = a.app
       dlg          = a.dlg }
+
+type BewitCredsError =
+  | CredentialsNotFound
+  | UnknownAlgo of algo:Algo
+  | Other of string
+
+type UserId = string
+
+/// A credential repository maps a UserId to a
+/// `Choice<Credentials * 'a, CredsError>`. The rest of the library
+/// takes care of validating these returned credentials, or yielding
+/// the correct error in response.
+type BewitCredsRepo<'a> = UserId -> Choice<Credentials * 'a, BewitCredsError>
+
+/// Authentication settings
+type BewitSettings<'a> =
+  { /// The clock to use for getting the time.
+    clock              : IClock
+
+    /// A logger - useful to use for finding input for the authentication
+    /// verification
+    logger             : Logger
+
+    /// Number of seconds of permitted clock skew for incoming
+    /// timestamps. Defaults to 60 seconds.  Provides a +/- skew which
+    /// means actual allowed window is double the number of seconds.
+    allowed_clock_skew : Duration
+
+    /// Local clock time offset which can be both +/-. Defaults to 0 s.
+    local_clock_offset : Duration
+
+    /// Credentials repository to fetch credentials based on UserId
+    /// from the Hawk authorisation header.
+    creds_repo         : BewitCredsRepo<'a> }
+
+/// The pieces of the request that the `authenticate_bewit` method cares about.
+type BewitRequest =
+  { /// Required method for the request
+    ``method``    : HttpMethod
+    /// Required uri for the request
+    uri           : Uri
+    /// Optional host name override (from uri) - useful if your web server
+    /// is behind a proxy and you can't easily feed a 'public' URI to the
+    /// `authenticate` function.
+    host          : string option
+    /// Optional port number override (from uri) - useful if your web
+    /// server is behind a proxy and you can't easily feed the 'public'
+    /// URI to the `authenticate` function.
+    port          : Port option }
+
+type Bewit = string
+
+/// Errors that can come from a validation pass of the Hawk Bewit header.
+type BewitAuthError =
+  /// There was a problem when validating the credentials of the principal
+  | CredsError of BewitCredsError
+  | Other of string
+with
+  override x.ToString() =
+    match x with
+    | Other s -> s
+    | x -> sprintf "%A" x
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module BewitAuthError =
+  /// Use constructor as function
+  let from_creds_error = CredsError
+
+/// A structure that represents the fully calculated hawk request data structure
+type BewitFullAuth =
+  { credentials  : Credentials
+    ``method``   : HttpMethod }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module BewitFullAuth =
+
+  let credentials_ =
+    (fun x -> x.credentials),
+    fun v (x : BewitFullAuth) -> { x with credentials = v }
+
+  let method_ =
+    (fun x -> x.``method``),
+    fun v (x : BewitFullAuth) -> { x with ``method`` = v }
+
+  
+type BewitAttributes =
+  { ``method`` : HttpMethod
+    uri        : Uri // host, port, resource
+    id         : string
+    exp        : string
+    mac        : string
+    ext        : string option
+  }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module BewitAttributes =
+  let empty =
+    { ``method`` = GET
+      uri        = Uri("http://example.com/abc")
+      id         = ""
+      exp        = ""
+      mac        = ""
+      ext        = None }
+
+  let mk meth uri =
+    { empty with ``method`` = meth; uri = uri }
+
+  let id_ =
+    (fun x -> x.id),
+    fun v (x : BewitAttributes) -> { x with id = v }
+
+  let mac_ =
+    (fun x -> x.mac),
+    fun v (x : BewitAttributes) -> { x with mac = v }
+
+  let exp_ =
+    (fun x -> x.exp),
+    fun v (x : BewitAttributes) -> { x with exp = v }
+
+  let ext_ =
+    (fun x -> x.ext),
+    fun v (x : BewitAttributes) -> { x with ext = v }

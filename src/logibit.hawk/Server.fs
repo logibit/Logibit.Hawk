@@ -5,10 +5,12 @@ open System
 open NodaTime
 
 open logibit.hawk
+open logibit.hawk.Crypto
+open logibit.hawk.Encoding
 open logibit.hawk.Logging
 open logibit.hawk.Types
 
-open Choice
+open ChoiceOperators
 
 /// The errors that may arise from trying to fetch credentials.
 type CredsError =
@@ -191,7 +193,7 @@ module Settings =
 module internal Impl =
   open Parse
 
-  let private to_auth_err key = function
+  let to_auth_err key = function
     | ParseError msg -> InvalidAttribute (key, msg)
 
   let starts_with (literal_prefix : string) (subject : string) =
@@ -200,41 +202,7 @@ module internal Impl =
     else
       Choice2Of2 (String.Concat [ "String doesn't start with; "; literal_prefix ])
 
-  let req_attr
-    (m : Map<_, 'v>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b>))
-    (w : Writer<'a>)
-    : Choice<Writer<'a>, AuthError> =
-
-    match m |> Map.tryFind key with
-    | Some value ->
-      parser value
-      >>- Writer.bind write w
-      >>@ to_auth_err key
-
-    | None ->
-      Choice2Of2 (MissingAttribute key)
-
-  let opt_attr
-    (m : Map<_, _>)
-    (key : string)
-    ((parser, (_, write)) : ('v -> Choice<'b, ParseError>) * (Lens<'a, 'b option>))
-    (w : Writer<'a>)
-    : Choice<Writer<_>, AuthError> =
-    
-    match m |> Map.tryFind key with
-    | Some value ->
-      match parser value with
-      | Choice1Of2 value' ->
-        Choice1Of2 (Writer.bind write w (Some value'))
-      | Choice2Of2 err ->
-        Choice1Of2 (Writer.bind write w None)
-
-    | None ->
-      Choice.lift w
-
-  let validate_credentials creds_repo req attrs =
+  let validate_credentials creds_repo (attrs : HawkAttributes) =
     creds_repo attrs.id
     >>@ AuthError.from_creds_error
     >>- fun cs -> attrs, cs
@@ -286,6 +254,8 @@ module internal Impl =
       timestamp = timestamp }
     |> logger.Log
 
+  let map_result (a, (b, c)) = a, b, c
+
 open Impl
 
 /// Parse the header into key-value pairs in the form
@@ -310,7 +280,6 @@ let authenticate (s : Settings<'a>)
                  : Choice<HawkAttributes * Credentials * 'a, AuthError> =
   let now = s.clock.Now
   let now_with_offset = s.clock.Now + s.local_clock_offset // before computing
-  let map_result (a, (b, c)) = a, b, c
 
   (fun _ -> 
     { message = "authenticate start"
@@ -335,19 +304,22 @@ let authenticate (s : Settings<'a>)
       timestamp = now })
   |> Logger.debug s.logger
 
+  let req_attr m = Parse.req_attr MissingAttribute Impl.to_auth_err m
+  let opt_attr m = Parse.opt_attr m
+
   parse_header req.authorisation // parse header, unknown header values so far
   >>= fun header ->
       Writer.lift (HawkAttributes.mk req.``method`` req.uri)
       >>~ req_attr header "id" (Parse.id, HawkAttributes.id_)
       >>= req_attr header "ts" (Parse.unix_sec_instant, HawkAttributes.ts_)
       >>= req_attr header "nonce" (Parse.id, HawkAttributes.nonce_)
-      >>= req_attr header "mac" (Parse.id, HawkAttributes.mac_) // TODO: parse byte[]?
-      >>= opt_attr header "hash" (Parse.id, HawkAttributes.hash_) // TODO: parse byte[]?
+      >>= req_attr header "mac" (Parse.id, HawkAttributes.mac_)
+      >>= opt_attr header "hash" (Parse.id, HawkAttributes.hash_)
       >>= opt_attr header "ext" (Parse.id, HawkAttributes.ext_)
       >>= opt_attr header "app" (Parse.id, HawkAttributes.app_)
       >>= opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
       >>- Writer.``return``
-      >>= validate_credentials s.creds_repo req
+      >>= validate_credentials s.creds_repo
       >>= validate_mac req
       >>= validate_payload req
       >>= validate_nonce s.nonce_validator
@@ -373,7 +345,12 @@ let authenticate_payload (payload : byte [])
   let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
   String.eq_ord_cnst_time calc_hash given_hash
 
+
+/// Authenticate bewit uri
+let authenticate_bewit (settings: BewitSettings<'a>) 
+                       (req: BewitRequest) =
+  Bewit.authenticate settings req
+
 // TODO: authenticate_payload_hash
 // TODO: header
-// TODO: authenticate_bewit
 // TODO: authenticate_message

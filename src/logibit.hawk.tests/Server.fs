@@ -102,16 +102,16 @@ let server =
       // Client/#header/returns a valid authorization header (sha256, content type)
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
       let client_data =
-        { credentials      = creds_inner "2"
-          ext              = Some "Bazinga!"
-          timestamp        = timestamp
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = Some (UTF8.bytes "something to write about")
-          hash             = None
-          content_type     = Some "text/plain"
-          app              = None
-          dlg              = None }
+        { ClientOptions.credentials = creds_inner "2"
+          ext                = Some "Bazinga!"
+          timestamp          = timestamp
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = Some (UTF8.bytes "something to write about")
+          hash               = None
+          content_type       = Some "text/plain"
+          app                = None
+          dlg                = None }
         |> Client.header uri POST
         |> ensure_value
 
@@ -302,16 +302,16 @@ let server =
     testCase "parses a valid authentication header (sha256, ext=ignore-payload)" <| fun _ ->
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
       let client_data =
-        { credentials      = creds_inner "2"
-          ext              = Some "ignore-payload"
-          timestamp        = timestamp
-          localtime_offset = None
-          nonce            = Some "Ygvqdz"
-          payload          = None // no payload used
-          hash             = None
-          content_type     = None // hence no content type
-          app              = None
-          dlg              = None }
+        { credentials        = creds_inner "2"
+          ext                = Some "ignore-payload"
+          timestamp          = timestamp
+          local_clock_offset = None
+          nonce              = Some "Ygvqdz"
+          payload            = None // no payload used
+          hash               = None
+          content_type       = None // hence no content type
+          app                = None
+          dlg                = None }
         |> Client.header uri POST
         |> ensure_value
 

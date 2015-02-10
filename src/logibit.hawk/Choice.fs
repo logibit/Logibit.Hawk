@@ -1,66 +1,73 @@
-﻿module logibit.hawk.Choice
+﻿namespace logibit.hawk
 
-let of_option on_error = function
-  | Some x -> Choice1Of2 x
-  | None   -> Choice2Of2 on_error
+module ChoiceOperators =
 
-let (>>=) m f =
-  m
-  |> function
-  | Choice1Of2 x   -> f x
-  | Choice2Of2 err -> Choice2Of2 err
+  let (>>=) m f =
+    m
+    |> function
+    | Choice1Of2 x   -> f x
+    | Choice2Of2 err -> Choice2Of2 err
 
-/// bind the successful value to f
-let bind f m = (m >>= f)
+  /// bind f to the error value
+  let (>>!) m f =
+    m
+    |> function
+    | Choice1Of2 x -> Choice1Of2 x
+    | Choice2Of2 err -> f err
 
-/// bind f to the error value
-let (>>!) m f =
-  m
-  |> function
-  | Choice1Of2 x -> Choice1Of2 x
-  | Choice2Of2 err -> f err
+  let (>>~) ``pure`` f =
+    Choice1Of2 ``pure`` >>= f
 
-/// bind f to the error value
-let bind_2 m f =
-  m >>! f
+  let (>>-) m f =
+    m
+    |> function
+    | Choice1Of2 x   -> Choice1Of2 (f x)
+    | Choice2Of2 err -> Choice2Of2 err
 
-/// lift the success value
-let lift ``pure`` = Choice1Of2 ``pure``
+  /// map error
+  let (>>@) m f =
+    m
+    |> function
+    | Choice1Of2 x -> Choice1Of2 x
+    | Choice2Of2 err -> Choice2Of2 (f err)
 
-let (>>~) ``pure`` f =
-  lift ``pure`` >>= f
+  /// inject a side-effect beside the error
+  let (>>*) m f =
+    m
+    |> function
+    | Choice1Of2 x -> Choice1Of2 x
+    | Choice2Of2 err ->
+      f err
+      Choice2Of2 err
 
-/// lift the value and bind to f
-let lift_bind ``pure`` f = ``pure`` >>~ f
+module Choice =
+  open ChoiceOperators
 
-let (>>-) m f =
-  m
-  |> function
-  | Choice1Of2 x   -> Choice1Of2 (f x)
-  | Choice2Of2 err -> Choice2Of2 err
+  let of_option on_error = function
+    | Some x -> Choice1Of2 x
+    | None   -> Choice2Of2 on_error
 
-/// map success
-let map f o = (o >>- f)
+  /// bind the successful value to f
+  let bind f m =
+    m >>= f
 
-/// map error
-let (>>@) m f =
-  m
-  |> function
-  | Choice1Of2 x -> Choice1Of2 x
-  | Choice2Of2 err -> Choice2Of2 (f err)
+  /// bind f to the error value
+  let bind_2 m f =
+    m >>! f
 
-/// map error
-let map_2 f o = o >>@ f
+  /// lift the success value
+  let lift ``pure`` =
+    Choice1Of2 ``pure``
 
-/// inject a side-effect beside the error
-let (>>*) m f =
-  m
-  |> function
-  | Choice1Of2 x -> Choice1Of2 x
-  | Choice2Of2 err ->
-    f err
-    Choice2Of2 err
+  /// lift the value and bind to f
+  let lift_bind ``pure`` f = ``pure`` >>~ f
 
-/// inject a side-effect beside the error
-let inject_2 f o =
-  o >>* f
+  /// map success
+  let map f o = (o >>- f)
+
+  /// map error
+  let map_2 f o = o >>@ f
+
+  /// inject a side-effect beside the error
+  let inject_2 f o =
+    o >>* f
