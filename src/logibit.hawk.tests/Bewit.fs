@@ -77,24 +77,27 @@ let settings =
 
 [<Tests>]
 let authentication =
-  let uri_ = "http://example.com/resource/4?a=1&b=2"
+  let uri =  "http://example.com/resource/4?a=1&b=2"
+  let uri_builder = UriBuilder uri
 
   let bewit_request =
     { ``method`` = GET
-      uri        = Uri "http://example.com?bewit=lalalllala"
+      uri        = uri_builder.Uri
       header     = None
       host       = None
       port       = None }
 
   testList "authentication" [
     testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
-      let b = Bewit.generate' uri_
-                             { BewitOptions.credentials = creds_inner
-                               ttl                      = Duration.FromSeconds 300L
-                               clock                    = clock
-                               local_clock_offset       = ts 1356420407232L - clock.Now
-                               ext                      = Some "some-app-data" }
-      Server.authenticate_bewit settings {bewit_request with uri = Uri (uri_ + "&bewit=" + b)}
+
+      let bewit = Bewit.generate' uri
+                                  { BewitOptions.credentials = creds_inner
+                                    ttl                      = Duration.FromSeconds 300L
+                                    clock                    = clock
+                                    local_clock_offset       = ts 1356420407232L - clock.Now
+                                    ext                      = Some "some-app-data" }
+      uri_builder.Query <- String.Join("&", [| uri_builder.Query; bewit |])
+      Server.authenticate_bewit settings { bewit_request with uri = uri_builder.Uri }
       |> ensure_value
       |> fun (attrs, _, user) ->
         match attrs.ext with
