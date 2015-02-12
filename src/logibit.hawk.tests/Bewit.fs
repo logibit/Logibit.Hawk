@@ -91,10 +91,11 @@ let ``parsing bewit parts`` =
       Tests.failtest "should have been able to parse the four token components"
 
 let settings =
-  { BewitSettings.clock = clock
+  { Settings.clock      = clock
     logger              = Logging.NoopLogger
     allowed_clock_skew  = Duration.FromMilliseconds 8000L
     local_clock_offset  = Duration.Zero
+    nonce_validator     = Settings.nonce_validator_mem
     creds_repo          = fun id -> Choice1Of2 (creds_inner, "steve") }
 
 [<Tests>]
@@ -162,5 +163,5 @@ let authentication =
       |> ensure_value
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user) 
+        Assert.Equal("return value", "steve", user)
   ]

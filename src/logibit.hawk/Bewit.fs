@@ -17,7 +17,7 @@ type BewitError =
   | DecodeError of message: string
   // Wrong number of arguments after decoding
   | BadArguments of arguments_given: string
-  | CredsError of BewitCredsError
+  | CredsError of CredsError
   /// A Bewit attribute cannot be turned into something the computer
   /// understands
   | InvalidAttribute of name:string * message:string
@@ -138,7 +138,7 @@ let generate_str (uri : string) =
 let generate_str_base64 uri =
   generate_str uri >> Encoding.ModifiedBase64Url.encode
 
-let authenticate (settings: BewitSettings<'a>) 
+let authenticate (settings: Settings<'a>) 
                  (req: BewitRequest) =
 
   let req_attr m = Parse.req_attr MissingAttribute Impl.to_bewit_error m

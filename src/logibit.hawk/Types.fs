@@ -220,21 +220,26 @@ module FullAuth =
       app          = a.app
       dlg          = a.dlg }
 
-type BewitCredsError =
+type UserId = string
+
+/// The errors that may arise from trying to fetch credentials.
+type CredsError =
   | CredentialsNotFound
   | UnknownAlgo of algo:Algo
   | Other of string
-
-type UserId = string
 
 /// A credential repository maps a UserId to a
 /// `Choice<Credentials * 'a, CredsError>`. The rest of the library
 /// takes care of validating these returned credentials, or yielding
 /// the correct error in response.
-type BewitCredsRepo<'a> = UserId -> Choice<Credentials * 'a, BewitCredsError>
+type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
+
+type NonceError =
+  | AlreadySeen
+  | Other of string
 
 /// Authentication settings
-type BewitSettings<'a> =
+type Settings<'a> =
   { /// The clock to use for getting the time.
     clock              : IClock
 
@@ -250,9 +255,41 @@ type BewitSettings<'a> =
     /// Local clock time offset which can be both +/-. Defaults to 0 s.
     local_clock_offset : Duration
 
+    /// An extra nonce validator - allows you to keep track of the last,
+    /// say, 1000 nonces, to be safe against replay attacks.
+    nonce_validator    : string * Instant -> Choice<unit, NonceError>
+
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    creds_repo         : BewitCredsRepo<'a> }
+    creds_repo         : CredsRepo<'a> }
+
+module Settings =
+  open System.Collections.Concurrent
+  open System.Runtime.Caching
+
+  /// This nonce validator lets all nonces through, boo yah!
+  let nonce_validator_noop = fun _ -> Choice1Of2 ()
+
+  // TODO: parametise the cache
+  // TODO: parametise the clock
+  let nonce_validator_mem =
+    let cache = MemoryCache.Default
+    fun (nonce, ts : Instant) ->
+      let in_20_min = DateTimeOffset.UtcNow.AddMinutes(20.)
+      // returns: if a cache entry with the same key exists, the existing cache entry; otherwise, null.
+      match cache.AddOrGetExisting(nonce, ts, in_20_min) |> box with
+      | null -> Choice1Of2 ()
+      | last_seen -> Choice2Of2 AlreadySeen
+
+  /// Create a new empty settings; beware that it will always return that
+  /// the credentials for the id given were not found.
+  let empty<'a> () : Settings<'a> =
+    { clock              = NodaTime.SystemClock.Instance
+      logger             = Logging.NoopLogger
+      allowed_clock_skew = Duration.FromSeconds 60L
+      local_clock_offset = Duration.Zero
+      nonce_validator    = nonce_validator_mem
+      creds_repo         = fun _ -> Choice2Of2 CredentialsNotFound }
 
 /// The pieces of the request that the `authenticate_bewit` method cares about.
 type BewitRequest =
@@ -274,7 +311,7 @@ type Bewit = string
 /// Errors that can come from a validation pass of the Hawk Bewit header.
 type BewitAuthError =
   /// There was a problem when validating the credentials of the principal
-  | CredsError of BewitCredsError
+  | CredsError of CredsError
   | Other of string
 with
   override x.ToString() =
