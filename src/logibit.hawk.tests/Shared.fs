@@ -10,11 +10,11 @@ let credentials algo =
     key       = "2983d45yun89q"
     algorithm = algo }
 
-let ensure_value = function
+let ensureValue = function
   | Choice2Of2 err -> Tests.failtestf "unexpected error: %A" err
   | Choice1Of2 x -> x
 
-let ensure_err = function
+let ensureErr = function
   | Choice1Of2 x -> Tests.failtestf "unexpected success: %A" x
   | Choice2Of2 err -> err
 

@@ -3,26 +3,26 @@ module internal logibit.hawk.Prelude
 
 module Option =
 
-  let or_default (defaults : 'a) (o : 'a option) =
+  let orDefault (defaults : 'a) (o : 'a option) =
     o |> Option.fold (fun s t -> t) defaults
 
 module Hoek =
 
-  let parse_content_type = function
+  let parseContentType = function
     | None -> ""
     | Some (ct : string) -> ct.Split(';').[0].Trim().ToLowerInvariant()
 
-  let escape_header_attr attr =
+  let escapeHeaderAttr attr =
     attr // TODO
 
 module String =
 
-  let to_lower_inv (str : string) =
+  let toLowerInv (str : string) =
     str.ToLowerInvariant()
 
   /// Ordinally compare two strings in constant time, bounded by the length of the
   /// longest string.
-  let eq_ord_cnst_time (str1 : string) (str2 : string) =
+  let eqOrdConstTime (str1 : string) (str2 : string) =
     let mutable xx = uint32 str1.Length ^^^ uint32 str2.Length
     let mutable i = 0
     while i < str1.Length && i < str2.Length do
@@ -89,15 +89,15 @@ module Hash =
   let update (h : HashAlgorithm) (bytes : byte[]) =
     h.TransformBlock (bytes, 0, bytes.Length, bytes, 0) |> ignore
 
-  let update' h (s : string) =
+  let updateStr h (s : string) =
     update h (UTF8.bytes s)
 
-  let update_final (h : HashAlgorithm) (bytes : byte[]) =
+  let updateFinal (h : HashAlgorithm) (bytes : byte[]) =
     h.TransformFinalBlock(bytes, 0, bytes.Length) |> ignore
     h.Hash
 
-  let update_final' (h : HashAlgorithm) (s : string) =
-    update_final h (UTF8.bytes s)
+  let updateFinalStr (h : HashAlgorithm) (s : string) =
+    updateFinal h (UTF8.bytes s)
 
   let finalise (h : HashAlgorithm) =
     use hh = h

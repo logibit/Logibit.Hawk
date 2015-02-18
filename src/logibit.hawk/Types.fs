@@ -18,16 +18,15 @@ type HttpMethod =
   | PATCH
   | CONNECT
   | OPTIONS
-with
   override x.ToString () =
     match x with
-    | GET -> "GET"
-    | HEAD -> "HEAD"
-    | PUT -> "PUT"
-    | POST -> "POST"
-    | TRACE -> "TRACE"
-    | DELETE -> "DELETE"
-    | PATCH -> "PATCH"
+    | GET     -> "GET"
+    | HEAD    -> "HEAD"
+    | PUT     -> "PUT"
+    | POST    -> "POST"
+    | TRACE   -> "TRACE"
+    | DELETE  -> "DELETE"
+    | PATCH   -> "PATCH"
     | CONNECT -> "CONNECT"
     | OPTIONS -> "OPTIONS"
 
@@ -36,7 +35,6 @@ type Algo =
   | SHA256
   | SHA384
   | SHA512
-with
   member x.DotNetString =
     match x with
     | SHA1 -> "SHA1"
@@ -150,8 +148,7 @@ type BewitAttributes =
     expiry     : Instant
     nonce      : string
     mac        : string
-    ext        : string option
-  }
+    ext        : string option }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitAttributes =
@@ -251,27 +248,27 @@ module FullAuth =
     (fun x -> x.dlg),
     fun v (x : FullAuth) -> { x with dlg = v }
 
-  let from_hawk_attrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
+  let fromHawkAttrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
     { credentials  = creds
       timestamp    = a.ts
       nonce        = a.nonce
       ``method``   = a.``method``
       resource     = a.uri.PathAndQuery
-      host         = host |> Option.or_default a.uri.Host
-      port         = port |> Option.or_default (uint16 a.uri.Port)
+      host         = host |> Option.orDefault a.uri.Host
+      port         = port |> Option.orDefault (uint16 a.uri.Port)
       hash         = a.hash
       ext          = a.ext
       app          = a.app
       dlg          = a.dlg }
 
-  let from_bewit_attributes creds (host : string option) (port : Port option) (a : BewitAttributes) =
+  let fromBewitAttributes creds (host : string option) (port : Port option) (a : BewitAttributes) =
     { credentials  = creds
       timestamp    = a.expiry
       nonce        = a.nonce
       ``method``   = a.``method``
       resource     = a.uri.PathAndQuery
-      host         = host |> Option.or_default a.uri.Host
-      port         = port |> Option.or_default (uint16 a.uri.Port)
+      host         = host |> Option.orDefault a.uri.Host
+      port         = port |> Option.orDefault (uint16 a.uri.Port)
       hash         = None
       ext          = a.ext
       app          = None
@@ -298,57 +295,57 @@ type NonceError =
 /// Authentication settings
 type Settings<'a> =
   { /// The clock to use for getting the time.
-    clock              : IClock
+    clock            : IClock
 
     /// A logger - useful to use for finding input for the authentication
     /// verification
-    logger             : Logger
+    logger           : Logger
 
     /// Number of seconds of permitted clock skew for incoming
     /// timestamps. Defaults to 60 seconds.  Provides a +/- skew which
     /// means actual allowed window is double the number of seconds.
-    allowed_clock_skew : Duration
+    allowedClockSkew : Duration
 
     /// Local clock time offset which can be both +/-. Defaults to 0 s.
-    local_clock_offset : Duration
+    localClockOffset : Duration
 
     /// An extra nonce validator - allows you to keep track of the last,
     /// say, 1000 nonces, to be safe against replay attacks.
-    nonce_validator    : string * Instant -> Choice<unit, NonceError>
+    nonceValidator   : string * Instant -> Choice<unit, NonceError>
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    creds_repo         : CredsRepo<'a> }
+    credsRepo        : CredsRepo<'a> }
 
 module Settings =
   open System.Collections.Concurrent
   open System.Runtime.Caching
 
   /// This nonce validator lets all nonces through, boo yah!
-  let nonce_validator_noop = fun _ -> Choice1Of2 ()
+  let nonceValidatorNoop = fun _ -> Choice1Of2 ()
 
   // TODO: parametise the cache
   // TODO: parametise the clock
-  let nonce_validator_mem =
+  let nonceValidatorMem =
     let cache = MemoryCache.Default
     fun (nonce, ts : Instant) ->
-      let in_20_min = DateTimeOffset.UtcNow.AddMinutes(20.)
+      let in20min = DateTimeOffset.UtcNow.AddMinutes(20.)
       // returns: if a cache entry with the same key exists, the existing cache entry; otherwise, null.
-      match cache.AddOrGetExisting(nonce, ts, in_20_min) |> box with
+      match cache.AddOrGetExisting(nonce, ts, in20min) |> box with
       | null -> Choice1Of2 ()
-      | last_seen -> Choice2Of2 AlreadySeen
+      | lastSeen -> Choice2Of2 AlreadySeen
 
   /// Create a new empty settings; beware that it will always return that
   /// the credentials for the id given were not found.
   let empty<'a> () : Settings<'a> =
     { clock              = NodaTime.SystemClock.Instance
       logger             = Logging.NoopLogger
-      allowed_clock_skew = Duration.FromSeconds 60L
-      local_clock_offset = Duration.Zero
-      nonce_validator    = nonce_validator_mem
-      creds_repo         = fun _ -> Choice2Of2 CredentialsNotFound }
+      allowedClockSkew   = Duration.FromSeconds 60L
+      localClockOffset   = Duration.Zero
+      nonceValidator     = nonceValidatorMem
+      credsRepo          = fun _ -> Choice2Of2 CredentialsNotFound }
 
-/// The pieces of the request that the `authenticate_bewit` method cares about.
+/// The pieces of the request that the `authenticateBewit` method cares about.
 type BewitRequest =
   { /// Required method for the request
     ``method``    : HttpMethod
@@ -370,7 +367,6 @@ type BewitAuthError =
   /// There was a problem when validating the credentials of the principal
   | CredsError of CredsError
   | Other of string
-with
   override x.ToString() =
     match x with
     | Other s -> s
@@ -379,7 +375,7 @@ with
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitAuthError =
   /// Use constructor as function
-  let from_creds_error = CredsError
+  let fromCredsError = CredsError
 
 /// A structure that represents the fully calculated hawk request data structure
 type BewitFullAuth =
@@ -397,5 +393,5 @@ module BewitFullAuth =
     (fun x -> x.``method``),
     fun v (x : BewitFullAuth) -> { x with ``method`` = v }
 
-  let from_attributes (attributes : BewitAttributes) =
+  let fromAttributes (attributes : BewitAttributes) =
     attributes

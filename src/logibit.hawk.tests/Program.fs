@@ -11,7 +11,7 @@ let utils =
   testList "Cryptiles" [
     testCase "next int" <| fun _ ->
       for i in 0 .. 1000 do
-        let f = Random.next_float ()
+        let f = Random.nextFloat ()
         Assert.Equal(sprintf "%f should be gte 0." f,
                      true, f >= 0.)
         Assert.Equal(sprintf "%f should be lte 1." f,

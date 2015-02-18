@@ -16,11 +16,11 @@ type BewitError =
   // Could not decode bewit from modified base64
   | DecodeError of message: string
   // Wrong number of arguments after decoding
-  | BadArguments of arguments_given: string
+  | BadArguments of argumentsGiven: string
   // Request method other than GET
   | WrongMethodError of message: string
   | CredsError of CredsError
-  | BadMac of header_given:string * calculated:string
+  | BadMac of headerGiven:string * calculated:string
   /// A Bewit attribute cannot be turned into something the computer
   /// understands
   | InvalidAttribute of name:string * message:string
@@ -38,7 +38,7 @@ with
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitError =
   /// Use constructor as function
-  let from_creds_error = BewitError.CredsError
+  let fromCredsError = BewitError.CredsError
 
 type BewitOptions =
   { /// Credentials to generate the bewit with
@@ -47,7 +47,7 @@ type BewitOptions =
     ttl                : Duration
     /// Time offset to sync with server time (ignored if timestamp provided),
     /// or zero otherwise.
-    local_clock_offset : Duration
+    localClockOffset : Duration
     /// The clock to use to find the time for the calculation of the bewit.
     clock              : IClock
     /// An optional ext parameter.
@@ -56,13 +56,13 @@ type BewitOptions =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitOptions =
 
-  let to_auth (now : Instant)
-              (uri : Uri)
-              exp
-              { credentials        = creds
-                local_clock_offset = offset
-                clock              = clock
-                ext                = ext } =
+  let toAuth (now : Instant)
+             (uri : Uri)
+             exp
+             { credentials        = creds
+               localClockOffset   = offset
+               clock              = clock
+               ext                = ext } =
     { credentials  = creds
       timestamp    = exp
       nonce        = ""
@@ -96,20 +96,20 @@ let parse (bewit : string) =
     |> BadArguments
     |> Choice2Of2
 
-let parse_base64  =
+let parseBase64  =
   Encoding.ModifiedBase64Url.decode >> parse
 
 module internal Impl =
 
-  let to_bewit_error key = function
+  let toBewitError key = function
     | ParseError msg -> InvalidAttribute (key, msg)
   
-  let validate_credentials creds_repo (attrs : BewitAttributes) =
-    creds_repo attrs.id
-    >>@ BewitError.from_creds_error
+  let validateCredentials credsRepo (attrs : BewitAttributes) =
+    credsRepo attrs.id
+    >>@ BewitError.fromCredsError
     >>- fun cs -> attrs, cs
 
-  let validate_method ((attrs : BewitAttributes), cs) =
+  let validateMethod ((attrs : BewitAttributes), cs) =
     if attrs.``method``.ToString() = "GET" then
       Choice1Of2 (attrs, cs)
     else
@@ -118,74 +118,74 @@ module internal Impl =
       |> WrongMethodError
       |> Choice2Of2
 
-  let validate_mac req (attrs, cs) =
-    let calc_mac =
-      FullAuth.from_bewit_attributes (fst cs) req.host req.port attrs
-      |> Crypto.calc_mac "bewit"
-    if String.eq_ord_cnst_time calc_mac attrs.mac then
+  let validateMac req (attrs, cs) =
+    let calcMac =
+      FullAuth.fromBewitAttributes (fst cs) req.host req.port attrs
+      |> Crypto.calcMac "bewit"
+    if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
-      BadMac (attrs.mac, calc_mac)
+      BadMac (attrs.mac, calcMac)
       |> Choice2Of2
 
-  let validate_ttl (now_with_offset : Instant)
+  let validateTTL (nowWithOffset : Instant)
                    (({ expiry = expiry } as attrs), cs) =
-    if expiry > now_with_offset then
+    if expiry > nowWithOffset then
       Choice1Of2 (attrs, cs)
     else
-      BewitTtlExpired (expiry, now_with_offset)
+      BewitTtlExpired (expiry, nowWithOffset)
       |> Choice2Of2
 
-  let decode_from_base64 (req : BewitRequest) =
+  let decodeFromBase64 (req : BewitRequest) =
     req.uri.Query.Split '&'
     |> Array.tryFind (fun x -> x.Contains("bewit="))
     |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
     |> Option.map ModifiedBase64Url.decode
-    |> Choice.of_option
+    |> Choice.ofOption
         (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
 
-  let map_result (a, (b, c)) = a, b, c
+  let mapResult (a, (b, c)) = a, b, c
 
-  let remove_bewit_from_uri (uri : Uri) =
+  let removeBewitFromUri (uri : Uri) =
     let builder = UriBuilder uri
     let parts = (builder.Query.Split [|'&' ; '?'|]
       |> Array.filter (fun x ->  not (x.Contains "bewit=" || x = "")))
     builder.Query <- String.Join("&", parts)
     builder.Uri
 
-let generate (uri : Uri) (opts : BewitOptions) =
+let gen (uri : Uri) (opts : BewitOptions) =
   let now = opts.clock.Now
-  let now_with_offset = opts.clock.Now + opts.local_clock_offset // before computing
-  let exp = now_with_offset + opts.ttl
+  let nowWithOffset = opts.clock.Now + opts.localClockOffset // before computing
+  let exp = nowWithOffset + opts.ttl
   let mac =
     opts
-    |> BewitOptions.to_auth now_with_offset uri exp
-    |> Crypto.calc_mac "bewit"
+    |> BewitOptions.toAuth nowWithOffset uri exp
+    |> Crypto.calcMac "bewit"
   let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
-  let ext = opts.ext |> Option.or_default ""
+  let ext = opts.ext |> Option.orDefault ""
   // Construct bewit: id\exp\mac\ext
   sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
 
 /// Generate the Bewit from a string-uri. The string passed must be possible to
 /// parse into a URI.
-let generate_str (uri : string) =
-  generate (Uri uri)
+let genStr (uri : string) =
+  gen (Uri uri)
 
-let generate_str_base64 uri =
-  generate_str uri >> Encoding.ModifiedBase64Url.encode
+let genBase64Str uri =
+  genStr uri >> Encoding.ModifiedBase64Url.encode
 
 let authenticate (settings: Settings<'a>) 
                  (req: BewitRequest) =
 
   let now = settings.clock.Now
-  let now_with_offset = settings.clock.Now + settings.local_clock_offset // before computing
+  let nowWithOffset = settings.clock.Now + settings.localClockOffset // before computing
 
   (fun _ ->
     { message = "authenticate bewit start"
       level   = Verbose
       path    = "logibit.hawk.Bewit.authenticate"
       data    =
-        [ "now_with_offset", box now_with_offset
+        [ "nowWithOffset", box nowWithOffset
           "req", box (
             [ "method", box req.``method``
               "uri", box req.uri
@@ -196,20 +196,20 @@ let authenticate (settings: Settings<'a>)
       timestamp = now })
   |> Logger.debug settings.logger
 
-  let req_attr m = Parse.req_attr MissingAttribute Impl.to_bewit_error m
-  let opt_attr m = Parse.opt_attr m
+  let reqAttr m = Parse.reqAttr MissingAttribute Impl.toBewitError m
+  let optAttr m = Parse.optAttr m
 
-  Impl.decode_from_base64 req
+  Impl.decodeFromBase64 req
   >>= parse // parse bewit string
   >>= (fun parts ->
-    Writer.lift (BewitAttributes.mk req.``method`` (Impl.remove_bewit_from_uri req.uri))
-    >>~ req_attr parts "id" (Parse.non_empty_string, BewitAttributes.id_)
-    >>= req_attr parts "exp" (Parse.unix_sec_instant, BewitAttributes.expiry_)
-    >>= req_attr parts "mac" (Parse.id, BewitAttributes.mac_)
-    >>= opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)
+    Writer.lift (BewitAttributes.mk req.``method`` (Impl.removeBewitFromUri req.uri))
+    >>~ reqAttr parts "id" (Parse.nonEmptyString, BewitAttributes.id_)
+    >>= reqAttr parts "exp" (Parse.unixSecInstant, BewitAttributes.expiry_)
+    >>= reqAttr parts "mac" (Parse.id, BewitAttributes.mac_)
+    >>= optAttr parts "ext" (Parse.id, BewitAttributes.ext_)
     >>- Writer.``return``
-    >>= Impl.validate_credentials settings.creds_repo
-    >>= Impl.validate_method
-    >>= Impl.validate_mac req
-    >>= Impl.validate_ttl now_with_offset
-    >>- Impl.map_result)
+    >>= Impl.validateCredentials settings.credsRepo
+    >>= Impl.validateMethod
+    >>= Impl.validateMac req
+    >>= Impl.validateTTL nowWithOffset
+    >>- Impl.mapResult)

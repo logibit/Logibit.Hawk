@@ -43,16 +43,16 @@ module ChoiceOperators =
 module Choice =
   open ChoiceOperators
 
-  let of_option on_error = function
+  let ofOption errorValue = function
     | Some x -> Choice1Of2 x
-    | None   -> Choice2Of2 on_error
+    | None   -> Choice2Of2 errorValue
 
   /// bind the successful value to f
   let bind f m =
     m >>= f
 
   /// bind f to the error value
-  let bind_2 m f =
+  let bind2 m f =
     m >>! f
 
   /// lift the success value
@@ -60,14 +60,14 @@ module Choice =
     Choice1Of2 ``pure``
 
   /// lift the value and bind to f
-  let lift_bind ``pure`` f = ``pure`` >>~ f
+  let liftBind ``pure`` f = ``pure`` >>~ f
 
   /// map success
   let map f o = (o >>- f)
 
   /// map error
-  let map_2 f o = o >>@ f
+  let map2 f o = o >>@ f
 
   /// inject a side-effect beside the error
-  let inject_2 f o =
+  let inject2 f o =
     o >>* f
