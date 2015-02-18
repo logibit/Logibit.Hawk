@@ -26,17 +26,16 @@ type AuthError =
   | CredsError of CredsError
   /// The calculated HMAC value for the request (and/or payload) doesn't
   /// match the given mac value
-  | BadMac of header_given:string * calculated:string
+  | BadMac of headerGiven:string * calculated:string
   /// The hash of the payload does not match the given hash.
-  | BadPayloadHash of hash_given:string * calculated:string
+  | BadPayloadHash of hashGiven:string * calculated:string
   /// The nonce was invalid
   | NonceError of NonceError
   /// The request has been too delayed to be accepted or has been replayed
   /// and provides information about the timestamp at the server as well
   /// as the local offset the library was counting on
-  | StaleTimestamp of ts_given:Instant * ts_server:Instant * offset_server : Duration
+  | StaleTimestamp of tsGiven:Instant * tsServer:Instant * offsetServer : Duration
   | Other of string
-with
   override x.ToString() =
     match x with
     | Other s -> s
@@ -45,10 +44,10 @@ with
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
   /// Use constructor as function
-  let from_creds_error = CredsError
+  let fromCredsError = CredsError
 
   /// Use constructor as function
-  let from_nonce_error = NonceError
+  let fromNonceError = NonceError
 
 /// The pieces of the request that the `authenticate` method cares about.
 type Req =
@@ -69,14 +68,14 @@ type Req =
     /// entire payload (assuming it has already be normalized to the same
     /// format and encoding used by the client to calculate the hash on
     /// request). If the payload is not available at the time of
-    /// authentication, the `authenticate_payload` function can be used by
+    /// authentication, the `authenticatePayload` function can be used by
     /// passing it the credentials and attributes.hash returned in the
     /// authenticate callback.
     payload       : byte [] option
 
     /// Optional contenet type of the payload. You should only set this
     /// if you have a payload.
-    content_type  : string option
+    contentType  : string option
 
     /// Optional host name override (from uri) - useful if your web server
     /// is behind a proxy and you can't easily feed a 'public' URI to the
@@ -107,9 +106,9 @@ module Req =
     (fun x -> x.payload),
     fun v (x : Req) -> { x with payload = v }
 
-  let content_type_ =
-    (fun x -> x.content_type),
-    fun v (x : Req) -> { x with content_type = v }
+  let contentType_ =
+    (fun x -> x.contentType),
+    fun v (x : Req) -> { x with contentType = v }
 
   let host_ =
     (fun x -> x.host),
@@ -124,30 +123,30 @@ module Req =
 module internal Impl =
   open Parse
 
-  let to_auth_err key = function
+  let toAuthErr key = function
     | ParseError msg -> InvalidAttribute (key, msg)
 
-  let starts_with (literal_prefix : string) (subject : string) =
-    if subject.StartsWith literal_prefix then
+  let startsWith (literalPrefix : string) (subject : string) =
+    if subject.StartsWith literalPrefix then
       Choice1Of2 ()
     else
-      Choice2Of2 (String.Concat [ "String doesn't start with; "; literal_prefix ])
+      Choice2Of2 (String.Concat [ "String doesn't start with; "; literalPrefix ])
 
-  let validate_credentials creds_repo (attrs : HawkAttributes) =
-    creds_repo attrs.id
-    >>@ AuthError.from_creds_error
+  let validateCredentials credsRepo (attrs : HawkAttributes) =
+    credsRepo attrs.id
+    >>@ AuthError.fromCredsError
     >>- fun cs -> attrs, cs
 
-  let validate_mac req (attrs, cs) =
-    let calc_mac =
-      FullAuth.from_hawk_attrs (fst cs) req.host req.port attrs
-      |> Crypto.calc_mac "header"
-    if String.eq_ord_cnst_time calc_mac attrs.mac then
+  let validateMac req (attrs, cs) =
+    let calcMac =
+      FullAuth.fromHawkAttrs (fst cs) req.host req.port attrs
+      |> Crypto.calcMac "header"
+    if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (BadMac (attrs.mac, calc_mac))
+      Choice2Of2 (BadMac (attrs.mac, calcMac))
 
-  let validate_payload req ((attrs : HawkAttributes), cs) =
+  let validatePayload req ((attrs : HawkAttributes), cs) =
     match req.payload with
     | None ->
       Choice1Of2 (attrs, cs)
@@ -155,29 +154,29 @@ module internal Impl =
       Choice1Of2 (attrs, cs)
     | Some payload ->
       let creds : Credentials = fst cs
-      Choice.of_option (MissingAttribute "hash") attrs.hash
-      >>= fun attrs_hash ->
-        let calc_hash = Crypto.calc_payload_hash' req.payload creds.algorithm req.content_type
-        if String.eq_ord_cnst_time calc_hash attrs_hash then
+      Choice.ofOption (MissingAttribute "hash") attrs.hash
+      >>= fun attrsHash ->
+        let calcHash = Crypto.calcPayloadHashString req.payload creds.algorithm req.contentType
+        if String.eqOrdConstTime calcHash attrsHash then
           Choice1Of2 (attrs, cs)
         else
-          Choice2Of2 (BadPayloadHash(attrs_hash, calc_hash))
+          Choice2Of2 (BadPayloadHash(attrsHash, calcHash))
 
-  let validate_nonce validator ((attrs : HawkAttributes), cs) =
+  let validateNonce validator ((attrs : HawkAttributes), cs) =
     validator (attrs.nonce, attrs.ts)
     >>- fun _ -> attrs, cs
-    >>@ AuthError.from_nonce_error
+    >>@ AuthError.fromNonceError
 
-  let validate_timestamp (now : Instant)
-                         (allowed_ts_skew : Duration)
-                         local_offset // for err only
-                         (({ ts = given_ts } as attrs), cs) =
-    if given_ts - now <= allowed_ts_skew then
+  let validateTimestamp (now : Instant)
+                        (allowedTsSkew : Duration)
+                        localOffset // for err only
+                        (({ ts = givenTs } as attrs), cs) =
+    if givenTs - now <= allowedTsSkew then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (StaleTimestamp (given_ts, now, local_offset))
+      Choice2Of2 (StaleTimestamp (givenTs, now, localOffset))
 
-  let log_failure (logger : Logger) timestamp (err : AuthError) =
+  let logFailure (logger : Logger) timestamp (err : AuthError) =
     { message   = "authenticate failure"
       level     = Info
       path      = "logibit.hawk.Server.authenticate"
@@ -185,15 +184,15 @@ module internal Impl =
       timestamp = timestamp }
     |> logger.Log
 
-  let map_result (a, (b, c)) = a, b, c
+  let mapResult (a, (b, c)) = a, b, c
 
 open Impl
 
 /// Parse the header into key-value pairs in the form
 /// of a `Map<string, string>`.
-let parse_header (header : string) =
+let parseHeader (header : string) =
   header
-  >>~ starts_with "Hawk "
+  >>~ startsWith "Hawk "
   >>@ AuthError.FaultyAuthorizationHeader
   >>- fun _ ->
     (header
@@ -210,17 +209,17 @@ let authenticate (s : Settings<'a>)
                  (req : Req)
                  : Choice<HawkAttributes * Credentials * 'a, AuthError> =
   let now = s.clock.Now
-  let now_with_offset = s.clock.Now + s.local_clock_offset // before computing
+  let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
 
   (fun _ -> 
     { message = "authenticate start"
       level   = Debug
       path    = "logibit.hawk.Server.authenticate"
       data    =
-        [ "now_with_offset", box now_with_offset
+        [ "nowWithOffset", box nowWithOffset
           "req", box (
             [ "header", box req.authorisation
-              "content_type", box req.content_type
+              "contentType", box req.contentType
               "host", box req.host
               "method", box req.``method``
               "payload_length", box (req.payload |> Option.map (fun bs -> bs.Length))
@@ -228,35 +227,35 @@ let authenticate (s : Settings<'a>)
               "uri", box req.uri
             ] |> Map.ofList)
           "s", box (
-            [ "allowed_clock_skew", box s.allowed_clock_skew
-              "local_clock_offset", box s.local_clock_offset
+            [ "allowed_clock_skew", box s.allowedClockSkew
+              "localClockOffset", box s.localClockOffset
             ] |> Map.ofList)
         ] |> Map.ofList
       timestamp = now })
   |> Logger.debug s.logger
 
-  let req_attr m = Parse.req_attr MissingAttribute Impl.to_auth_err m
-  let opt_attr m = Parse.opt_attr m
+  let reqAttr m = Parse.reqAttr MissingAttribute Impl.toAuthErr m
+  let optAttr m = Parse.optAttr m
 
-  parse_header req.authorisation // parse header, unknown header values so far
+  parseHeader req.authorisation // parse header, unknown header values so far
   >>= fun header ->
       Writer.lift (HawkAttributes.mk req.``method`` req.uri)
-      >>~ req_attr header "id" (Parse.id, HawkAttributes.id_)
-      >>= req_attr header "ts" (Parse.unix_sec_instant, HawkAttributes.ts_)
-      >>= req_attr header "nonce" (Parse.id, HawkAttributes.nonce_)
-      >>= req_attr header "mac" (Parse.id, HawkAttributes.mac_)
-      >>= opt_attr header "hash" (Parse.id, HawkAttributes.hash_)
-      >>= opt_attr header "ext" (Parse.id, HawkAttributes.ext_)
-      >>= opt_attr header "app" (Parse.id, HawkAttributes.app_)
-      >>= opt_attr header "dlg" (Parse.id, HawkAttributes.dlg_)
+      >>~ reqAttr header "id" (Parse.id, HawkAttributes.id_)
+      >>= reqAttr header "ts" (Parse.unixSecInstant, HawkAttributes.ts_)
+      >>= reqAttr header "nonce" (Parse.id, HawkAttributes.nonce_)
+      >>= reqAttr header "mac" (Parse.id, HawkAttributes.mac_)
+      >>= optAttr header "hash" (Parse.id, HawkAttributes.hash_)
+      >>= optAttr header "ext" (Parse.id, HawkAttributes.ext_)
+      >>= optAttr header "app" (Parse.id, HawkAttributes.app_)
+      >>= optAttr header "dlg" (Parse.id, HawkAttributes.dlg_)
       >>- Writer.``return``
-      >>= validate_credentials s.creds_repo
-      >>= validate_mac req
-      >>= validate_payload req
-      >>= validate_nonce s.nonce_validator
-      >>= validate_timestamp now_with_offset s.allowed_clock_skew s.local_clock_offset
-      >>- map_result
-      >>* log_failure s.logger now
+      >>= validateCredentials s.credsRepo
+      >>= validateMac req
+      >>= validatePayload req
+      >>= validateNonce s.nonceValidator
+      >>= validateTimestamp nowWithOffset s.allowedClockSkew s.localClockOffset
+      >>- mapResult
+      >>* logFailure s.logger now
 
 /// Authenticate payload hash - used when payload cannot be provided
 /// during authenticate()
@@ -264,24 +263,23 @@ let authenticate (s : Settings<'a>)
 /// Arguments:
 /// - `payload` - the raw request payload
 /// - `creds` - credentials from the `authenticate` call
-/// - `given_hash` - expected hash of payload
-/// - `content_type` - actual request content type
+/// - `givenHash` - expected hash of payload
+/// - `contentType` - actual request content type
 ///
 /// Returns: true if the payload matches the given hash
-let authenticate_payload (payload : byte [])
-                         (creds : Credentials)
-                         (given_hash : string)
-                         (content_type : string) =
+let authenticatePayload (payload : byte [])
+                        (creds : Credentials)
+                        (givenHash : string)
+                        (contentType : string) =
 
-  let calc_hash = Crypto.calc_payload_hash' (Some payload) creds.algorithm (Some content_type)
-  String.eq_ord_cnst_time calc_hash given_hash
-
+  let calcHash = Crypto.calcPayloadHashString (Some payload) creds.algorithm (Some contentType)
+  String.eqOrdConstTime calcHash givenHash
 
 /// Authenticate bewit uri
-let authenticate_bewit (settings: Settings<'a>) 
-                       (req: BewitRequest) =
+let authenticateBewit (settings: Settings<'a>) 
+                      (req: BewitRequest) =
   Bewit.authenticate settings req
 
-// TODO: authenticate_payload_hash
+// TODO: authenticatePayloadHash
 // TODO: header
-// TODO: authenticate_message
+// TODO: authenticateMessage

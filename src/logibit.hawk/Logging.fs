@@ -21,76 +21,75 @@ type LogLevel =
   /// log lines that cause the application to crash or become
   /// unusable.
   | Fatal
-  with
-    /// Convert the LogLevel to a string
-    override x.ToString () =
-      match x with
-      | Verbose -> "verbose"
-      | Debug -> "debug"
-      | Info -> "info"
-      | Warn -> "warn"
-      | Error -> "error"
-      | Fatal -> "fatal"
+  /// Convert the LogLevel to a string
+  override x.ToString () =
+    match x with
+    | Verbose -> "verbose"
+    | Debug -> "debug"
+    | Info -> "info"
+    | Warn -> "warn"
+    | Error -> "error"
+    | Fatal -> "fatal"
 
-    /// Converts the string passed to a Loglevel.
-    [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
-    static member FromString str =
-      match str with
-      | "verbose" -> Verbose
-      | "debug" -> Debug
-      | "info" -> Info
-      | "warn" -> Warn
-      | "error" -> Error
-      | "fatal" -> Fatal
-      | _ -> Info
+  /// Converts the string passed to a Loglevel.
+  [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
+  static member FromString str =
+    match str with
+    | "verbose" -> Verbose
+    | "debug" -> Debug
+    | "info" -> Info
+    | "warn" -> Warn
+    | "error" -> Error
+    | "fatal" -> Fatal
+    | _ -> Info
 
-    /// Turn the LogLevel into an integer
-    [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
-    member x.ToInt () =
-      (function
-      | Verbose -> 1
-      | Debug -> 2
-      | Info -> 3
-      | Warn -> 4
-      | Error -> 5
-      | Fatal -> 6) x
+  /// Turn the LogLevel into an integer
+  [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
+  member x.ToInt () =
+    (function
+    | Verbose -> 1
+    | Debug -> 2
+    | Info -> 3
+    | Warn -> 4
+    | Error -> 5
+    | Fatal -> 6) x
 
-    /// Turn an integer into a LogLevel
-    [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
-    static member FromInt i =
-      (function
-      | 1 -> Verbose
-      | 2 -> Debug
-      | 3 -> Info
-      | 4 -> Warn
-      | 5 -> Error
-      | 6 -> Fatal
-      | _ as i -> failwith "rank %i not available" i) i
+  /// Turn an integer into a LogLevel
+  [<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
+  static member FromInt i =
+    (function
+    | 1 -> Verbose
+    | 2 -> Debug
+    | 3 -> Info
+    | 4 -> Warn
+    | 5 -> Error
+    | 6 -> Fatal
+    | _ as i -> failwith "rank %i not available" i) i
 
-    static member op_LessThan (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) < 0
-    static member op_LessThanOrEqual (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) <= 0
-    static member op_GreaterThan (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) > 0
-    static member op_GreaterThanOrEqual (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) >= 0
+  static member op_LessThan (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) < 0
+  static member op_LessThanOrEqual (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) <= 0
+  static member op_GreaterThan (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) > 0
+  static member op_GreaterThanOrEqual (a, b) = (a :> IComparable<LogLevel>).CompareTo(b) >= 0
 
-    override x.Equals other = (x :> IComparable).CompareTo other = 0
+  override x.Equals other = (x :> IComparable).CompareTo other = 0
 
-    override x.GetHashCode () = x.ToInt ()
+  override x.GetHashCode () = x.ToInt ()
 
-    interface IComparable with
-      member x.CompareTo other =
-        match other with
-        | null -> 1
-        | :? LogLevel as tother ->
-          (x :> IComparable<LogLevel>).CompareTo tother
-        | _ -> failwith <| sprintf "invalid comparison %A to %A" x other
+  interface IComparable with
+    member x.CompareTo other =
+      match other with
+      | null -> 1
+      | :? LogLevel as tother ->
+        (x :> IComparable<LogLevel>).CompareTo tother
+      | _ -> failwith <| sprintf "invalid comparison %A to %A" x other
 
-    interface IComparable<LogLevel> with
-      member x.CompareTo other =
-        compare (x.ToInt()) (other.ToInt())
+  interface IComparable<LogLevel> with
+    member x.CompareTo other =
+      compare (x.ToInt()) (other.ToInt())
 
-    interface IEquatable<LogLevel> with
-      member x.Equals other =
-        x.ToInt() = other.ToInt()
+  interface IEquatable<LogLevel> with
+    member x.Equals other =
+      x.ToInt() = other.ToInt()
 
 /// When logging, write a log line like this with the source of your
 /// log line as well as a message and an optional exception.
@@ -124,8 +123,8 @@ type Logger =
 
 let NoopLogger =
   { new Logger with
-      member x.Verbose f_line = ()
-      member x.Debug f_line = ()
+      member x.Verbose fLine = ()
+      member x.Debug fLine = ()
       member x.Log line = () }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -134,8 +133,8 @@ module Logger =
   let log (logger : Logger) (line : LogLine) =
     logger.Log line
 
-  let debug (logger : Logger) f_line =
-    logger.Debug f_line
+  let debug (logger : Logger) fLine =
+    logger.Debug fLine
 
-  let verbose (logger : Logger) f_line =
-    logger.Verbose f_line
+  let verbose (logger : Logger) fLine =
+    logger.Verbose fLine

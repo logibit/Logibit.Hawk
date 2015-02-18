@@ -13,13 +13,13 @@ open logibit.hawk.Server
 module private Impl =
   open Microsoft.FSharp.Reflection
 
-  let from_str<'a> s =
+  let fromStr<'a> s =
     let t = typeof<'a>
     match FSharpType.GetUnionCases t |> Array.filter (fun case -> case.Name = s) with
     | [|case|] -> FSharpValue.MakeUnion(case,[||]) :?> 'a
     | err -> failwithf "couldn't find union case %s.%s" t.Name s
 
-  let from_suave_method =
+  let fromSuaveMethod =
     function
     | SHttpMethod.GET -> GET
     | SHttpMethod.HEAD -> HEAD
@@ -37,7 +37,7 @@ module private Impl =
     if pi = -1 then None else
     Some ( s.Substring(0, pi), s.Substring(pi + 1, s.Length - pi - 1) )
 
-  let parse_auth_header (s : string) =
+  let parseAuthHeader (s : string) =
     match bisect s ' ' with
     | None -> Choice2Of2 (sprintf "Couldn't split '%s' into two parts on space" s)
     | Some (scheme, parameters) -> Choice1Of2 (scheme.TrimEnd(':'), parameters)
@@ -50,8 +50,8 @@ let HawkDataKey = "logibit.hawk.data"
 /// You can bind the last argument to a function
 /// that maps your request changing function into the choice. Or in code:
 ///
-/// let plx_goto_8080_MR s =
-///   bind_req s
+/// let plxGoto8080MR s =
+///   bindReq s
 ///   // when you've bound the request, apply the following function to
 ///   // the return value (the Choice of req or a string error)
 ///   >> (fun mreq ->
@@ -64,37 +64,34 @@ type ReqFactory<'a> = Settings<'a> -> HttpContext -> Choice<Req, string>
 
 open logibit.hawk.ChoiceOperators // Choice's binding of >>=
 
-let bind_req (s : Settings<'a>)
-             ({ request = s_req } as ctx)
-             : Choice<Req, string> =
+let bindReq (s : Settings<'a>) ctx : Choice<Req, string> =
+  let ub = UriBuilder (ctx.request.url)
+  ub.Host <- ctx.request.host.value
 
-  let ub = UriBuilder (s_req.url)
-  ub.Host <- s_req.host.value
-
-  Binding.header "authorization" Choice1Of2 s_req
+  Binding.header "authorization" Choice1Of2 ctx.request
   >>= (fun header ->
-    Binding.header "host" Choice1Of2 s_req
+    Binding.header "host" Choice1Of2 ctx.request
     >>- fun host -> header, host)
   >>- (fun (auth, host) ->
-    { ``method``    = Impl.from_suave_method s_req.``method``
+    { ``method``    = Impl.fromSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       authorisation = auth
-      payload       = if s_req.rawForm.Length = 0 then None else Some ctx.request.rawForm
+      payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
       host          = None
       port          = None
-      content_type  = ctx.request.header "content-type"})
+      contentType  = ctx.request.header "content-type"})
 
-// Example functor of the bind_req function:
-//let bind_req' s =
-//  bind_req s >> (fun mreq -> mreq >>- (fun req -> { req with port = Some 8080us }))
+// Example functor of the bindReq function:
+//let bindReqStr s =
+//  bindReq s >> (fun mreq -> mreq >>- (fun req -> { req with port = Some 8080us }))
 
-let auth_ctx (s : Settings<'a>) (f_req : ReqFactory<'a>) =
+let authCtx (settings : Settings<'a>) (requestFactory : ReqFactory<'a>) =
   fun ctx ->
-    f_req s ctx
+    requestFactory settings ctx
     >>@ AuthError.Other
-    >>= Server.authenticate s
+    >>= Server.authenticate settings
 
-let auth_ctx' s = auth_ctx s bind_req
+let authCtxDefault s = authCtx s bindReq
 
 open Suave.Http // this changes binding of >>=
 
@@ -102,35 +99,35 @@ open Suave.Http // this changes binding of >>=
 /// getting function (ReqFactory) and then a continuation functor for
 /// both the successful case and the unauthorised case.
 ///
-/// This will also set `HawkDataKey` in the `user_state` dictionary.
+/// This will also set `HawkDataKey` in the `userState` dictionary.
 ///
 /// You might want to use authenticate' unless you're running behind
-/// a load balancer and need to replace your `bind_req` function (in this
+/// a load balancer and need to replace your `bindReq` function (in this
 /// module) with something of your own.
 ///
 /// Also see the comments on the ReqFactory type for docs on how to contruct
 /// your own Req value, or re-map the default one.
-let authenticate (s : Settings<'a>)
-                 (f_req : ReqFactory<'a>)
-                 (f_err : AuthError -> WebPart)
-                 (f_cont : _ -> WebPart)
+let authenticate (settings : Settings<'a>)
+                 (reqFac : ReqFactory<'a>)
+                 (fErr : AuthError -> WebPart)
+                 (fCont : _ -> WebPart)
                  : WebPart =
   fun ctx ->
-    match auth_ctx s f_req ctx with
+    match authCtx settings reqFac ctx with
     | Choice1Of2 res ->
       (Writers.setUserData HawkDataKey res
-       >>= f_cont res) ctx
+       >>= fCont res) ctx
     | Choice2Of2 err ->
-      f_err err ctx
+      fErr err ctx
 
 /// Like `authenticate` but with the default request factory function.
-let authenticate' s =
-  authenticate s bind_req
+let authenticateDefault settings =
+  authenticate settings bindReq
 
 module HttpContext =
 
   /// Find the Hawk auth data from the context.
-  let hawk_data (ctx : HttpContext) =
+  let hawkData (ctx : HttpContext) =
     ctx.userState
     |> Map.tryFind HawkDataKey
     |> Option.map (fun x -> x :?> HawkAttributes * Credentials * 'a)

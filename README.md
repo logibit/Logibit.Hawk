@@ -33,12 +33,12 @@ open Suave.Types
 // your own user type
 type User =
   { homepage  : Uri
-    real_name : string }
+    realName : string }
 
 // this is the structure that is the 'context' for logibit.hawk
 let settings =
   // this is what the lib is looking for to verify the request
-  let sample_creds =
+  let sampleCreds =
     { id        = "haf"
       key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
       algorithm = SHA256 }
@@ -47,20 +47,20 @@ let settings =
   // for your own user type (above)
   { Settings.empty<User>() with
      // sign: UserId -> Choice<Credentials * 'a, CredsError>
-     creds_repo = fun id ->
-       (sample_creds,
-        { homepage = Uri("https://logibit.se"); real_name = "Henrik" }
+     credsRepo = fun id ->
+       (sampleCreds,
+        { homepage = Uri("https://logibit.se"); realName = "Henrik" }
        )
        // no error:
        |> Choice1Of2 }
 
 // you can compose this into the rest of the app, as it's a web part
-let sample_app settings : WebPart =
+let sampleApp settings : WebPart =
   Hawk.authenticate
     settings
-    Hawk.bind_req
+    Hawk.bindReq
     // in here you can put your authenticated web parts
-    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
+    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
     // on failure to authenticate the request
     (fun err -> UNAUTHORIZED (err.ToString()))
 ```
@@ -168,15 +168,15 @@ These functions are available, checked functions are implemented
 ### `logibit.hawk.Server`
 
  - [x] authenticate - authenticate a request
- - [x] authenticate_payload - authenticate the payload of a request - assumes
+ - [x] authenticatePayload - authenticate the payload of a request - assumes
    you first have called `authenticate` to get credentials.
    [Payload Validation](https://github.com/hueniverse/hawk#payload-validation)
- - [ ] authenticate_payload_hash
+ - [ ] authenticatePayloadHash
  - [ ] header - generate a server-header for the client to authenticate
- - [ ] authenticate_bewit - authenticate a client-supplied bewit, see [Bewit
+ - [ ] authenticateBewit - authenticate a client-supplied bewit, see [Bewit
    Usage Example](https://github.com/hueniverse/hawk#bewit-usage-example).
    TODO: delegate to Bewit.authenticate
- - [ ] authenticate_message - authenticate a client-supplied message
+ - [ ] authenticateMessage - authenticate a client-supplied message
 
 #### `authenticate` details
 
@@ -230,10 +230,10 @@ declaration, before the semi-colon `;`).
 
 The crypto module contains functions for validating the pieces of the request.
 
- - [x] gen_norm_string - generate a normalised string for a request/auth data
- - [x] calc_payload_hash - calculates the payload hash from a given byte[]
- - [x] calc_payload_hash - calculates the payload hash from a given string
- - [x] calc_hmac - calculates the HMAC for a given string
+ - [x] genNormStr - generate a normalised string for a request/auth data
+ - [x] calcPayloadHash - calculates the payload hash from a given byte[]
+ - [x] calcPayloadHash - calculates the payload hash from a given string
+ - [x] calcHmac - calculates the HMAC for a given string
 
 ### `logibit.hawk.Types`
 
@@ -276,39 +276,39 @@ be done if we can really do something with them.
 
 This module adds some functions for composing Choice-s:
 
- - `of_option : on_error:'b -> Choice<'a, 'b>` - convert an option to a choice
+ - `ofOption : onError:'b -> Choice<'a, 'b>` - convert an option to a choice
  - `(>>=) : m:Choice<'a, 'b> -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` -
    the normal bind operator, defined on choice
  - `bind` - same as above
  - `(>>!) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - the normal
    bind operator, defined on the error case of choice
- - `bind_2` - same as above
+ - `bind2` - same as above
  - `lift : a:'a -> Choice<'a, 'b>` - lift the value a into the choice
  - `(>>~) : a:'a -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` - lift the value
    a and bind f to the resulting choice -- useful for "start with this value and
-   then run this sequence of bind/map/map_2 on the choice values that flow".
- - `lift_bind` - same as above
+   then run this sequence of bind/map/map2 on the choice values that flow".
+ - `liftBind` - same as above
  - `(>>-) : m:Choice<'a, 'b> -> f:('a -> 'c) -> Choice<'c, 'b>` - map the
    first/successful choice value to another one (and another type, possibly).
  - `map` - same as above
  - `(>>@) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - map the
    second/error choice value to another one (and another type, possibly).
- - `map_2` - same as above
+ - `map2` - same as above
  - `(>>*) : m:Choice<'a, 'b> -> f:('b -> unit) -> Choice<'a, 'b>` - inject
    a side-effect if the choice is in the error case.
- - `inject_2` - same as above
+ - `inject2` - same as above
 
 #### Example
 
 From the source code, with annotations:
 
 ``` fsharp
-let validate_nonce validator
-                   ((attrs : HawkAttributes), cs) :
-                   : Choice<_, AuthError> =
+let validateNonce validator
+                  ((attrs : HawkAttributes), cs) :
+                  : Choice<_, AuthError> =
   validator (attrs.nonce, attrs.ts) // => Choice<unit, NonceError>
   >>- fun _ -> attrs, cs // => Choice<HawkAttributes * 'cs, NonceError>
-  >>@ AuthError.from_nonce_error
+  >>@ AuthError.fromNonceError
   // => Choice<HawkAttributes * 'cs, AuthError>
 ```
 

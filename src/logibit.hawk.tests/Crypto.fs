@@ -14,7 +14,7 @@ let crypto =
   testList "crypto" [
     testCase "valid normalized string" <| fun _ ->
       let subject =
-        Crypto.gen_norm_str
+        Crypto.genNormStr
           "header"
           { credentials = credentials SHA256 
             timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
@@ -33,7 +33,7 @@ let crypto =
 
     testCase "valid normalized string (ext)" <| fun _ ->
       let subject =
-        Crypto.gen_norm_str
+        Crypto.genNormStr
           "header"
           { credentials =
               { id        = "sample"
@@ -54,7 +54,7 @@ let crypto =
                    subject)
     testCase "valid normalized string (payload + ext)" <| fun _ ->
       let subject =
-        Crypto.gen_norm_str
+        Crypto.genNormStr
           "header"
           { credentials =
               { id        = "sample"
@@ -76,7 +76,7 @@ let crypto =
 
     testCase "normalised payload hash" <| fun _ ->
       let payload = Some (UTF8.bytes "description=a&timestamp=2015-01-06T00%3A00%3A00.000Z&amount=12&currency=SEK&targets%5Beconomic%5D%5Bkey%5D=economic&targets%5Beconomic%5D%5Btitle%5D=Economic+Finance+Voucher&receipt_id=6cf8a352bc16439ca60895da7d0dfadb")
-      let content_type = Some "application/x-www-form-urlencoded; charset=UTF-8"
-      let result = Crypto.calc_payload_hash' payload Algo.SHA256 content_type
+      let contentType = Some "application/x-www-form-urlencoded; charset=UTF-8"
+      let result = Crypto.calcPayloadHashString payload Algo.SHA256 contentType
       Assert.Equal("correct payload hash", "SRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI=", result)
   ]

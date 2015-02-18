@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
+# Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{7B11D818-C87B-4943-867A-6CA34064B720}"
@@ -16,6 +16,12 @@ EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "logibit.hawk.suave", "logibit.hawk.suave\logibit.hawk.suave.fsproj", "{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}"
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "logibit.hawk.suave.tests", "logibit.hawk.suave.tests\logibit.hawk.suave.tests.fsproj", "{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{E73AC0E5-498F-46F8-8EB7-4954A5DA2127}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+		..\LICENSE.md = ..\LICENSE.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

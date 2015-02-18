@@ -15,11 +15,11 @@ open logibit.hawk.Tests.Shared
 open logibit.hawk.Server
 
 [<Tests>]
-let util_tests =
+let utilTests =
   let sample = "2014-05-06T04:22:56+0200"
   testList "can parse ISO8601" [
     testCase sample <| fun _ ->
-      match Parse.iso8601_instant sample with
+      match Parse.iso8601Instant sample with
       | Choice1Of2 inst ->
         let dto =
           DateTimeOffset(2014, 05, 06, 4, 22, 56, TimeSpan.FromHours(2.))
@@ -29,13 +29,13 @@ let util_tests =
     ]
 
 [<Tests>]
-let authorization_header =
+let authorizationHeader =
   testList "can parse an authorization header" [
     testCase "simple" <| fun _ ->
       let sample = "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Ygvqdz\"" +
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazinga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
-      let values = Server.parse_header sample |> ensure_value
+      let values = Server.parseHeader sample |> ensureValue
       Assert.Equal("should have id", "123456", values.["id"])
       Assert.Equal("should have ts", "1353809207", values.["ts"])
       Assert.Equal("should have nonce", "Ygvqdz", values.["nonce"])
@@ -48,7 +48,7 @@ let authorization_header =
       let sample = "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Yg, vqdz\"" +
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazi,nga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
-      let values = Server.parse_header sample |> ensure_value
+      let values = Server.parseHeader sample |> ensureValue
       Assert.Equal("should have id", "123456", values.["id"])
       Assert.Equal("should have ts", "1353809207", values.["ts"])
       Assert.Equal("should have nonce", "Yg, vqdz", values.["nonce"])
@@ -66,18 +66,18 @@ let server =
     { new IClock with
         member x.Now = timestamp }
 
-  let creds_inner id =
+  let credsInner id =
     { id        = id
       key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
       algorithm = if id = "1" then SHA1 else SHA256 }
 
   let settings =
-    { clock              = clock
-      logger             = Logging.NoopLogger
-      allowed_clock_skew = Duration.FromMilliseconds 8000L
-      local_clock_offset = Duration.Zero
-      nonce_validator    = Settings.nonce_validator_noop
-      creds_repo         = fun id -> Choice1Of2 (creds_inner id, "steve") }
+    { clock            = clock
+      logger           = Logging.NoopLogger
+      allowedClockSkew = Duration.FromMilliseconds 8000L
+      localClockOffset = Duration.Zero
+      nonceValidator   = Settings.nonceValidatorNoop
+      credsRepo        = fun id -> Choice1Of2 (credsInner id, "steve") }
 
   let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
 
@@ -91,9 +91,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-      |> ensure_value
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -101,29 +101,29 @@ let server =
       // same as:
       // Client/#header/returns a valid authorization header (sha256, content type)
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
-      let client_data =
-        { ClientOptions.credentials = creds_inner "2"
+      let clientData =
+        { ClientOptions.credentials = credsInner "2"
           ext                = Some "Bazinga!"
           timestamp          = timestamp
-          local_clock_offset = None
+          localClockOffset = None
           nonce              = Some "Ygvqdz"
           payload            = Some (UTF8.bytes "something to write about")
           hash               = None
-          content_type       = Some "text/plain"
+          contentType        = Some "text/plain"
           app                = None
           dlg                = None }
         |> Client.header uri POST
-        |> ensure_value
+        |> ensureValue
 
       { ``method``    = POST
         uri           = uri
-        authorisation = client_data.header
+        authorisation = clientData.header
         payload       = Some (UTF8.bytes "something to write about")
         host          = None
         port          = None
-        content_type  = Some "text/plain" }
+        contentType   = Some "text/plain" }
       |> authenticate settings
-      |> ensure_value
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -136,9 +136,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353832234L - clock.Now }
-      |> ensure_value
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -151,9 +151,9 @@ let server =
         payload       = None
         host          = Some "example.com"
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-      |> ensure_value
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -166,9 +166,9 @@ let server =
         payload       = None
         host          = Some "example.com"
         port          = Some 8080us
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-      |> ensure_value
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -183,9 +183,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1357926341L - clock.Now }
-      |> ensure_value
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1357926341L - clock.Now }
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
 
@@ -198,9 +198,9 @@ let server =
         payload       = Some (UTF8.bytes "body")
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353832234L - clock.Now }
-      |> ensure_err
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+      |> ensureErr
       |> function
       | MissingAttribute a ->
         Assert.Equal("hash attr", "hash", a)
@@ -208,7 +208,7 @@ let server =
         Tests.failtestf "expected MissingAttribute(hash) but got '%A'" err
 
     testCase "errors on a stale timestamp" <| fun _ ->
-      let expected_delta = Duration.FromSeconds 9L
+      let expectedDelta = Duration.FromSeconds 9L
       let header = "Hawk id=\"123456\", ts=\"1362337299\", nonce=\"UzmxSs\", ext=\"some-app-data\", " +
                    "mac=\"wnNUxchvvryMH2RxckTdZ/gY3ijzvccx4keVvELC61w=\""
       { ``method``    = GET
@@ -217,9 +217,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = Duration.Zero }
-      |> ensure_err
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = Duration.Zero }
+      |> ensureErr
       |> function
       | StaleTimestamp _ -> ()
       | err -> Tests.failtest "expected 'StaleTimestamp _'"
@@ -227,8 +227,8 @@ let server =
     testCase "errors on a replay" <| fun _ ->
       let settings' =
         { settings with
-            nonce_validator = Settings.nonce_validator_mem
-            local_clock_offset = ts 1353832234L - clock.Now }
+            nonceValidator = Settings.nonceValidatorMem
+            localClockOffset = ts 1353832234L - clock.Now }
       let header = "Hawk id=\"123\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"bXx7a7p1h9QYQNZ8x7QhvDQym8ACgab4m3lVSFn4DBw=\", ext=\"hello\""
       let data =
@@ -238,10 +238,10 @@ let server =
           payload       = None
           host          = None
           port          = None
-          content_type  = None }
+          contentType   = None }
       
-      authenticate settings' data |> ensure_value |> ignore
-      authenticate settings' data |> ensure_err
+      authenticate settings' data |> ensureValue |> ignore
+      authenticate settings' data |> ensureErr
       |> function
       | NonceError AlreadySeen -> ()
       | err -> Tests.failtestf "wrong error, expected NonceError AlreadySeen, got '%A'" err
@@ -255,9 +255,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-      |> ensure_err
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      |> ensureErr
       |> function
       | FaultyAuthorizationHeader _ -> ()
       | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
@@ -269,9 +269,9 @@ let server =
         payload       = None
         host          = None
         port          = None
-        content_type  = None }
-      |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-      |> ensure_err
+        contentType   = None }
+      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      |> ensureErr
       |> function
       | FaultyAuthorizationHeader _ -> ()
       | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
@@ -291,39 +291,39 @@ let server =
             payload       = None
             host          = None
             port          = None
-            content_type  = None }
-          |> authenticate { settings with local_clock_offset = ts 1353788437L - clock.Now }
-          |> ensure_err
+            contentType   = None }
+          |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+          |> ensureErr
           |> function
-          | MissingAttribute actual_attr -> Assert.Equal("attr", attr, actual_attr)
+          | MissingAttribute actualAttr -> Assert.Equal("attr", attr, actualAttr)
           | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
           )
 
     testCase "parses a valid authentication header (sha256, ext=ignore-payload)" <| fun _ ->
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
-      let client_data =
-        { credentials        = creds_inner "2"
+      let clientData =
+        { credentials        = credsInner "2"
           ext                = Some "ignore-payload"
           timestamp          = timestamp
-          local_clock_offset = None
+          localClockOffset = None
           nonce              = Some "Ygvqdz"
           payload            = None // no payload used
           hash               = None
-          content_type       = None // hence no content type
+          contentType        = None // hence no content type
           app                = None
           dlg                = None }
         |> Client.header uri POST
-        |> ensure_value
+        |> ensureValue
 
       { ``method``    = POST
         uri           = uri
-        authorisation = client_data.header
+        authorisation = clientData.header
         payload       = Some ([| 1uy; 2uy; 3uy |]) // this is what the server impl will feed
         host          = None
         port          = None
-        content_type  = Some "text/plain" }
+        contentType   = Some "text/plain" }
       |> authenticate settings
-      |> ensure_value
+      |> ensureValue
       |> fun (attrs, _, user) ->
         Assert.Equal("return value", "steve", user)
     ]
