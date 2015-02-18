@@ -39,8 +39,8 @@ let ``bewit generation`` =
   testList "Bewit.generate" [
     testCase "it returns a valid bewit value" <| fun _ ->
       let b =
-        Bewit.genBase64Str
-          "https://example.com/somewhere/over/the/rainbow"
+        Bewit.genBase64
+          (Uri "https://example.com/somewhere/over/the/rainbow")
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
@@ -53,7 +53,7 @@ let ``bewit generation`` =
     testCase "returns a valid bewit value (explicit port)" <| fun _ ->
       let b =
         Bewit.genBase64Str
-          "https://example.com:8080/somewhere/over/the/rainbow"
+          (Uri "https://example.com:8080/somewhere/over/the/rainbow")
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
@@ -66,7 +66,7 @@ let ``bewit generation`` =
     testCase "returns a valid bewit value (None ext)" <| fun _ ->
       let b =
         Bewit.genBase64Str
-          "https://example.com/somewhere/over/the/rainbow"
+          (Uri "https://example.com/somewhere/over/the/rainbow")
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
@@ -87,12 +87,12 @@ let ``encoding tests`` =
 [<Tests>]
 let ``parsing bewit parts`` =
   testCase "can parse bewit from bewit token" <| fun _ ->
-    let b = Bewit.genStr "https://example.com/somewhere/over/the/rainbow"
-                         { BewitOptions.credentials = credsInner
-                           ttl                      = Duration.FromSeconds 300L
-                           clock                    = clock
-                           localClockOffset         = ts 1356420407232L - clock.Now
-                           ext                      = None }
+    let b = Bewit.gen (Uri "https://example.com/somewhere/over/the/rainbow")
+                      { BewitOptions.credentials = credsInner
+                        ttl                      = Duration.FromSeconds 300L
+                        clock                    = clock
+                        localClockOffset         = ts 1356420407232L - clock.Now
+                        ext                      = None }
     match Bewit.parse b with
     | Choice1Of2 map ->
       Assert.Equal("has id", credsInner.id, map |> Map.find "id")
@@ -119,12 +119,12 @@ let authentication =
     { BewitOptions.credentials = credsInner
       ttl                      = Duration.FromSeconds 300L
       clock                    = clock
-      localClockOffset       = ts 1356420407232L - clock.Now
+      localClockOffset         = ts 1356420407232L - clock.Now
       ext                      = Some "some-app-data" }
 
   let bewitRequest fInspect =
     uriBuilder.Query <- uriParams
-    let bewit = Bewit.genBase64Str uriBuilder.Uri.AbsoluteUri (opts |> fInspect)
+    let bewit = Bewit.genBase64Str uriBuilder.Uri (opts |> fInspect)
     uriBuilder.Query <- String.Join("&", [| uriParams ; "bewit=" + bewit |])
     { ``method`` = GET
       uri        = uriBuilder.Uri

@@ -346,7 +346,7 @@ module Settings =
       credsRepo          = fun _ -> Choice2Of2 CredentialsNotFound }
 
 /// The pieces of the request that the `authenticateBewit` method cares about.
-type BewitRequest =
+type QueryRequest =
   { /// Required method for the request
     ``method``    : HttpMethod
     /// Required uri for the request

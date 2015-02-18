@@ -47,7 +47,7 @@ type BewitOptions =
     ttl                : Duration
     /// Time offset to sync with server time (ignored if timestamp provided),
     /// or zero otherwise.
-    localClockOffset : Duration
+    localClockOffset   : Duration
     /// The clock to use to find the time for the calculation of the bewit.
     clock              : IClock
     /// An optional ext parameter.
@@ -136,7 +136,7 @@ module internal Impl =
       BewitTtlExpired (expiry, nowWithOffset)
       |> Choice2Of2
 
-  let decodeFromBase64 (req : BewitRequest) =
+  let decodeFromBase64 (req : QueryRequest) =
     req.uri.Query.Split '&'
     |> Array.tryFind (fun x -> x.Contains("bewit="))
     |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
@@ -166,16 +166,12 @@ let gen (uri : Uri) (opts : BewitOptions) =
   // Construct bewit: id\exp\mac\ext
   sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
 
-/// Generate the Bewit from a string-uri. The string passed must be possible to
-/// parse into a URI.
-let genStr (uri : string) =
-  gen (Uri uri)
-
+/// Generates a base64url-encoded string from a uri
 let genBase64Str uri =
-  genStr uri >> Encoding.ModifiedBase64Url.encode
+  gen uri >> Encoding.ModifiedBase64Url.encode
 
-let authenticate (settings: Settings<'a>) 
-                 (req: BewitRequest) =
+let authenticate (settings : Settings<'a>) 
+                 (req : QueryRequest) =
 
   let now = settings.clock.Now
   let nowWithOffset = settings.clock.Now + settings.localClockOffset // before computing

@@ -50,7 +50,7 @@ module AuthError =
   let fromNonceError = NonceError
 
 /// The pieces of the request that the `authenticate` method cares about.
-type Req =
+type HeaderRequest =
   { /// Required method for the request
     ``method``    : HttpMethod
 
@@ -88,35 +88,35 @@ type Req =
     port          : Port option }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module Req =
+module HeaderReq =
 
   let ``method``_ =
     (fun x -> x.``method``),
-    fun v (x : Req) -> { x with ``method`` = v }
+    fun v (x : HeaderRequest) -> { x with ``method`` = v }
 
   let uri_ =
     (fun x -> x.uri),
-    fun v (x : Req) -> { x with uri = v }
+    fun v (x : HeaderRequest) -> { x with uri = v }
 
   let authorisation_ =
     (fun x -> x.authorisation),
-    fun v (x : Req) -> { x with authorisation = v }
+    fun v (x : HeaderRequest) -> { x with authorisation = v }
 
   let payload_ =
     (fun x -> x.payload),
-    fun v (x : Req) -> { x with payload = v }
+    fun v (x : HeaderRequest) -> { x with payload = v }
 
   let contentType_ =
     (fun x -> x.contentType),
-    fun v (x : Req) -> { x with contentType = v }
+    fun v (x : HeaderRequest) -> { x with contentType = v }
 
   let host_ =
     (fun x -> x.host),
-    fun v (x : Req) -> { x with host = v }
+    fun v (x : HeaderRequest) -> { x with host = v }
 
   let port_ =
     (fun x -> x.port),
-    fun v (x : Req) -> { x with port = v }
+    fun v (x : HeaderRequest) -> { x with port = v }
 
 /// Internal validation module which takes care of the different
 /// aspects of validating the request.
@@ -206,7 +206,7 @@ let parseHeader (header : string) =
       ) Map.empty)
 
 let authenticate (s : Settings<'a>)
-                 (req : Req)
+                 (req : HeaderRequest)
                  : Choice<HawkAttributes * Credentials * 'a, AuthError> =
   let now = s.clock.Now
   let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
@@ -276,8 +276,8 @@ let authenticatePayload (payload : byte [])
   String.eqOrdConstTime calcHash givenHash
 
 /// Authenticate bewit uri
-let authenticateBewit (settings: Settings<'a>) 
-                      (req: BewitRequest) =
+let authenticateBewit (settings : Settings<'a>) 
+                      (req : QueryRequest) =
   Bewit.authenticate settings req
 
 // TODO: authenticatePayloadHash
