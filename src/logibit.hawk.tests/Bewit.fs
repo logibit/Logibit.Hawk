@@ -39,7 +39,7 @@ let ``bewit generation`` =
   testList "Bewit.generate" [
     testCase "it returns a valid bewit value" <| fun _ ->
       let b =
-        Bewit.genBase64
+        Bewit.genBase64Str
           (Uri "https://example.com/somewhere/over/the/rainbow")
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
