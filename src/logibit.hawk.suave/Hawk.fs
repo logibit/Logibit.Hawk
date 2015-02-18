@@ -79,10 +79,10 @@ let bind_req (s : Settings<'a>)
     { ``method``    = Impl.from_suave_method s_req.``method``
       uri           = ub.Uri
       authorisation = auth
-      payload       = if s_req.raw_form.Length = 0 then None else Some ctx.request.raw_form
+      payload       = if s_req.rawForm.Length = 0 then None else Some ctx.request.rawForm
       host          = None
       port          = None
-      content_type  = "content-type" |> HttpRequest.header ctx.request })
+      content_type  = ctx.request.header "content-type"})
 
 // Example functor of the bind_req function:
 //let bind_req' s =
@@ -118,7 +118,7 @@ let authenticate (s : Settings<'a>)
   fun ctx ->
     match auth_ctx s f_req ctx with
     | Choice1Of2 res ->
-      (Writers.set_user_data HawkDataKey res
+      (Writers.setUserData HawkDataKey res
        >>= f_cont res) ctx
     | Choice2Of2 err ->
       f_err err ctx
@@ -131,6 +131,6 @@ module HttpContext =
 
   /// Find the Hawk auth data from the context.
   let hawk_data (ctx : HttpContext) =
-    ctx.user_state
+    ctx.userState
     |> Map.tryFind HawkDataKey
     |> Option.map (fun x -> x :?> HawkAttributes * Credentials * 'a)

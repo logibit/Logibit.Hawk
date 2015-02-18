@@ -41,6 +41,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App.config" />
     <Compile Include="AssemblyVersionInfo.fs" />
     <Compile Include="Hawk.fs" />
     <Compile Include="Program.fs" />
