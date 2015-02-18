@@ -117,14 +117,12 @@ module internal Impl =
     else
       Choice2Of2 (BadMac (attrs.mac, calc_mac))
 
-  let validate_ttl (now : Instant)
-                   (allowed_ts_skew : Duration)
-                   local_offset // for err only
+  let validate_ttl (now_with_offset : Instant)
                    (({ expiry = expiry } as attrs), cs) =
-    if expiry < now then
+    if expiry > now_with_offset then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (BewitTtlExpired (expiry, now))
+      Choice2Of2 (BewitTtlExpired (expiry, now_with_offset))
 
   let decode_from_base64 (req : BewitRequest) =
     req.uri.Query.Split '&'
@@ -182,10 +180,6 @@ let authenticate (settings: Settings<'a>)
               "host", box req.host
               "port", box req.port
             ] |> Map.ofList)
-          "s", box (
-            [ "allowed_clock_skew", box settings.allowed_clock_skew
-              "local_clock_offset", box settings.local_clock_offset
-            ] |> Map.ofList)
         ] |> Map.ofList
       timestamp = now })
   |> Logger.debug settings.logger
@@ -204,4 +198,5 @@ let authenticate (settings: Settings<'a>)
     >>- Writer.``return``
     >>= Impl.validate_credentials settings.creds_repo
     >>= Impl.validate_mac req
+    >>= Impl.validate_ttl now_with_offset
     >>- Impl.map_result)
