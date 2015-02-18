@@ -103,7 +103,7 @@ let ``parsing bewit parts`` =
 
 let settings =
   { Settings.clock      = clock
-    logger              = DebugPrinter "BewitLogger" 
+    logger              = Logging.NoopLogger
     allowed_clock_skew  = Duration.FromMilliseconds 300L
     local_clock_offset  = ts 1356420407232L - clock.Now
     nonce_validator     = Settings.nonce_validator_mem
@@ -173,7 +173,6 @@ let authentication =
         Assert.Equal("return value", "steve", user)
 
     testCase "should successfully authenticate a request (only param)" <| fun _ ->
-      uri_builder.Query <- String.Empty
       uri_builder.Query <-
         "bewit=MTIzNDU2XDEzNTY0MjA3MDdcSWYvYzNYOVdTYmc5a1RZUlJHbWdwZHBGYnlkdm0wZVY4ZkVGVnNjcFdTOD1cc29tZS1hcHAtZGF0YQ"
       { ``method`` = GET
@@ -197,36 +196,108 @@ let authentication =
       | WrongMethodError _ -> ()
       | err -> Tests.failtestf "wrong error, expected WrongMethodError, got '%A'" err
 
-    testCase "should fail on invalid host header" <| fun _ ->
-      uri_builder.Query <- String.Join("&",
-        [|uri_params
-          "bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"|] )
+    testCase "should fail on empty bewit" <| fun _ ->
+      uri_builder.Query <- "bewit="
       { ``method`` = GET
         uri        = uri_builder.Uri
         host       = None
         port       = None }
       |> Server.authenticate_bewit settings
-      |> ensure_value
-      |> fun (attrs, _, user) ->
-        Assert.Equal("ext value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user)
+      |> ensure_err
+      |> function
+      | BadArguments _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
 
-    testCase "should fail on empty bewit" <| fun _ ->
-      ()
-    testCase "should fail on invalid bewit" <| fun _ ->
-      ()
     testCase "should fail on missing bewit" <| fun _ ->
-      ()
-    testCase "should fail on invalid bewit structure" <| fun _ ->
-      ()
+      uri_builder.Query <- String.Empty
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | DecodeError _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+
     testCase "should fail on empty bewit attribute" <| fun _ ->
-      ()
+      uri_builder.Query <- "bewit=YVxcY1xk"
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | InvalidAttribute _ -> ()
+      | err -> Tests.failtestf "wrong error, expected InvalidAttribute, got '%A'" err
+
+    testCase "should fail on invalid bewit structure" <| fun _ ->
+      uri_builder.Query <- "bewit=abc"
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | BadArguments _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+
+    testCase "should fail on invalid bewit" <| fun _ ->
+      Tests.skiptest "Error not handled yet"
+      uri_builder.Query <- "bewit=*"
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | BadArguments _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+
     testCase "should fail on missing bewit id attribute" <| fun _ ->
-      ()
+      uri_builder.Query <-
+        "bewit=XDQ1NTIxNDc2MjJcK0JFbFhQMXhuWjcvd1Nrbm1ldGhlZm5vUTNHVjZNSlFVRHk4NWpTZVJ4VT1cc29tZS1hcHAtZGF0YQ"
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | InvalidAttribute _ -> ()
+      | err -> Tests.failtestf "wrong error, expected InvalidAttribute, got '%A'" err
+
     testCase "should fail on expired access" <| fun _ ->
-      ()
+      uri_builder.Query <- String.Join("&",
+        [|uri_params ;
+          "bewit=MTIzNDU2XDEzNTY0MjA0MDdcS1Eyb2htc1hEMjFpZDFONGNqU2hBUmw5VE9XZVFyQVVsL3QzbnFmdlBpTT1cc29tZS1hcHAtZGF0YQ" |])
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit settings
+      |> ensure_err
+      |> function
+      | BewitTtlExpired _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BewitTtlExpired, got '%A'" err
+
     testCase "should fail on credentials function error" <| fun _ ->
-      ()
+      uri_builder.Query <- String.Join("&",
+        [|"bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ"
+          uri_params|] )
+      { ``method`` = GET
+        uri        = uri_builder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticate_bewit {settings with creds_repo = (fun id -> (CredsError.Other "Boom!") |> Choice2Of2 )}
+      |> ensure_err
+      |> function
+      | BewitError.CredsError _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BewitError.CredsError, got '%A'" err
+
     testCase "should fail on credentials function error with credentials" <| fun _ ->
       ()
     testCase "should fail on null credentials function response" <| fun _ ->
@@ -234,7 +305,5 @@ let authentication =
     testCase "should fail on invalid credentials function response" <| fun _ ->
       ()
     testCase "should fail on invalid credentials function response (unknown algorithm)" <| fun _ ->
-      ()
-    testCase "should fail on expired access" <| fun _ ->
       ()
   ]

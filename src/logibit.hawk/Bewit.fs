@@ -91,7 +91,7 @@ let parse (bewit : string) =
          "ext", ext
        ] |> Map.ofList)
   | xs ->
-    sprintf "wrong number of arguments in string. Should be 4 but given %d"
+    sprintf "wrong number of arguments in bewit. Should be 4 but given %d"
             xs.Length
     |> BadArguments
     |> Choice2Of2
@@ -203,7 +203,7 @@ let authenticate (settings: Settings<'a>)
   >>= parse // parse bewit string
   >>= (fun parts ->
     Writer.lift (BewitAttributes.mk req.``method`` (Impl.remove_bewit_from_uri req.uri))
-    >>~ req_attr parts "id" (Parse.id, BewitAttributes.id_)
+    >>~ req_attr parts "id" (Parse.non_empty_string, BewitAttributes.id_)
     >>= req_attr parts "exp" (Parse.unix_sec_instant, BewitAttributes.expiry_)
     >>= req_attr parts "mac" (Parse.id, BewitAttributes.mac_)
     >>= opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)

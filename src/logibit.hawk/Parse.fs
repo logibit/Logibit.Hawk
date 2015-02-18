@@ -36,6 +36,10 @@ let unix_sec_instant =
 
 let id x = Choice1Of2 x
 
+let non_empty_string = function
+  | x when String.Empty = x -> Choice2Of2 (ParseError "needed input to be non-empty string")
+  | x -> Choice1Of2 x
+
 open ChoiceOperators
 
 let req_attr
