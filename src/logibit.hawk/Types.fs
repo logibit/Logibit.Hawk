@@ -143,6 +143,50 @@ module HawkAttributes =
     (fun x -> x.dlg),
     fun v (x : HawkAttributes) -> { x with dlg = v }
 
+type BewitAttributes =
+  { ``method`` : HttpMethod
+    uri        : Uri // host, port, resource
+    id         : string
+    expiry     : Instant
+    nonce      : string
+    mac        : string
+    ext        : string option
+  }
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module BewitAttributes =
+  let empty =
+    { ``method`` = GET
+      uri        = Uri("http://example.com/abc")
+      id         = ""
+      expiry     = Instant.MinValue
+      nonce      = ""
+      mac        = ""
+      ext        = None }
+
+  let mk meth uri =
+    { empty with ``method`` = meth; uri = uri }
+
+  let id_ =
+    (fun x -> x.id),
+    fun v (x : BewitAttributes) -> { x with id = v }
+
+  let nonce_ =
+    (fun x -> x.nonce),
+    fun v (x : BewitAttributes) -> { x with nonce = v }
+
+  let mac_ =
+    (fun x -> x.mac),
+    fun v (x : BewitAttributes) -> { x with mac = v }
+
+  let expiry_ =
+    (fun x -> x.expiry),
+    fun v (x : BewitAttributes) -> { x with expiry = v }
+
+  let ext_ =
+    (fun x -> x.ext),
+    fun v (x : BewitAttributes) -> { x with ext = v }
+
 /// A structure that represents the fully calculated hawk request data structure
 type FullAuth =
   { credentials  : Credentials
@@ -219,6 +263,19 @@ module FullAuth =
       ext          = a.ext
       app          = a.app
       dlg          = a.dlg }
+
+  let from_bewit_attributes creds (host : string option) (port : Port option) (a : BewitAttributes) =
+    { credentials  = creds
+      timestamp    = a.expiry
+      nonce        = a.nonce
+      ``method``   = a.``method``
+      resource     = a.uri.PathAndQuery
+      host         = host |> Option.or_default a.uri.Host
+      port         = port |> Option.or_default (uint16 a.uri.Port)
+      hash         = None
+      ext          = a.ext
+      app          = None
+      dlg          = None }
 
 type UserId = string
 
@@ -340,41 +397,5 @@ module BewitFullAuth =
     (fun x -> x.``method``),
     fun v (x : BewitFullAuth) -> { x with ``method`` = v }
 
-  
-type BewitAttributes =
-  { ``method`` : HttpMethod
-    uri        : Uri // host, port, resource
-    id         : string
-    exp        : string
-    mac        : string
-    ext        : string option
-  }
-
-[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-module BewitAttributes =
-  let empty =
-    { ``method`` = GET
-      uri        = Uri("http://example.com/abc")
-      id         = ""
-      exp        = ""
-      mac        = ""
-      ext        = None }
-
-  let mk meth uri =
-    { empty with ``method`` = meth; uri = uri }
-
-  let id_ =
-    (fun x -> x.id),
-    fun v (x : BewitAttributes) -> { x with id = v }
-
-  let mac_ =
-    (fun x -> x.mac),
-    fun v (x : BewitAttributes) -> { x with mac = v }
-
-  let exp_ =
-    (fun x -> x.exp),
-    fun v (x : BewitAttributes) -> { x with exp = v }
-
-  let ext_ =
-    (fun x -> x.ext),
-    fun v (x : BewitAttributes) -> { x with ext = v }
+  let from_attributes (attributes : BewitAttributes) =
+    attributes

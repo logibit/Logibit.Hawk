@@ -17,12 +17,17 @@ type BewitError =
   | DecodeError of message: string
   // Wrong number of arguments after decoding
   | BadArguments of arguments_given: string
+  // Request method other than GET
+  | WrongMethodError of message: string
   | CredsError of CredsError
+  | BadMac of header_given:string * calculated:string
   /// A Bewit attribute cannot be turned into something the computer
   /// understands
   | InvalidAttribute of name:string * message:string
   /// A required Hawk attribute is missing from the request header
   | MissingAttribute of name:string
+  /// If Time to live (Ttl) has been passed
+  | BewitTtlExpired of expiry:Instant * now:Instant
   | Other of string
 with
   override x.ToString() =
@@ -86,7 +91,7 @@ let parse (bewit : string) =
          "ext", ext
        ] |> Map.ofList)
   | xs ->
-    sprintf "wrong number of arguments in string. Should be 4 but given %d"
+    sprintf "wrong number of arguments in bewit. Should be 4 but given %d"
             xs.Length
     |> BadArguments
     |> Choice2Of2
@@ -98,11 +103,38 @@ module internal Impl =
 
   let to_bewit_error key = function
     | ParseError msg -> InvalidAttribute (key, msg)
-
+  
   let validate_credentials creds_repo (attrs : BewitAttributes) =
     creds_repo attrs.id
     >>@ BewitError.from_creds_error
     >>- fun cs -> attrs, cs
+
+  let validate_method ((attrs : BewitAttributes), cs) =
+    if attrs.``method``.ToString() = "GET" then
+      Choice1Of2 (attrs, cs)
+    else
+      sprintf "wrong method supplied to request. Should be 'GET', but was given '%O'"
+        attrs.``method``
+      |> WrongMethodError
+      |> Choice2Of2
+
+  let validate_mac req (attrs, cs) =
+    let calc_mac =
+      FullAuth.from_bewit_attributes (fst cs) req.host req.port attrs
+      |> Crypto.calc_mac "bewit"
+    if String.eq_ord_cnst_time calc_mac attrs.mac then
+      Choice1Of2 (attrs, cs)
+    else
+      BadMac (attrs.mac, calc_mac)
+      |> Choice2Of2
+
+  let validate_ttl (now_with_offset : Instant)
+                   (({ expiry = expiry } as attrs), cs) =
+    if expiry > now_with_offset then
+      Choice1Of2 (attrs, cs)
+    else
+      BewitTtlExpired (expiry, now_with_offset)
+      |> Choice2Of2
 
   let decode_from_base64 (req : BewitRequest) =
     req.uri.Query.Split '&'
@@ -113,7 +145,14 @@ module internal Impl =
         (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
 
   let map_result (a, (b, c)) = a, b, c
-      
+
+  let remove_bewit_from_uri (uri : Uri) =
+    let builder = UriBuilder uri
+    let parts = (builder.Query.Split [|'&' ; '?'|]
+      |> Array.filter (fun x ->  not (x.Contains "bewit=" || x = "")))
+    builder.Query <- String.Join("&", parts)
+    builder.Uri
+
 let generate (uri : Uri) (opts : BewitOptions) =
   let now = opts.clock.Now
   let now_with_offset = opts.clock.Now + opts.local_clock_offset // before computing
@@ -127,9 +166,6 @@ let generate (uri : Uri) (opts : BewitOptions) =
   // Construct bewit: id\exp\mac\ext
   sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
 
-let generate_base64 uri =
-  generate uri >> Encoding.ModifiedBase64Url.encode
-
 /// Generate the Bewit from a string-uri. The string passed must be possible to
 /// parse into a URI.
 let generate_str (uri : string) =
@@ -141,17 +177,39 @@ let generate_str_base64 uri =
 let authenticate (settings: Settings<'a>) 
                  (req: BewitRequest) =
 
+  let now = settings.clock.Now
+  let now_with_offset = settings.clock.Now + settings.local_clock_offset // before computing
+
+  (fun _ ->
+    { message = "authenticate bewit start"
+      level   = Verbose
+      path    = "logibit.hawk.Bewit.authenticate"
+      data    =
+        [ "now_with_offset", box now_with_offset
+          "req", box (
+            [ "method", box req.``method``
+              "uri", box req.uri
+              "host", box req.host
+              "port", box req.port
+            ] |> Map.ofList)
+        ] |> Map.ofList
+      timestamp = now })
+  |> Logger.debug settings.logger
+
   let req_attr m = Parse.req_attr MissingAttribute Impl.to_bewit_error m
   let opt_attr m = Parse.opt_attr m
 
   Impl.decode_from_base64 req
   >>= parse // parse bewit string
   >>= (fun parts ->
-    Writer.lift (BewitAttributes.mk req.``method`` req.uri)
-    >>~ req_attr parts "id" (Parse.id, BewitAttributes.id_)
-    >>= req_attr parts "exp" (Parse.id, BewitAttributes.exp_)
+    Writer.lift (BewitAttributes.mk req.``method`` (Impl.remove_bewit_from_uri req.uri))
+    >>~ req_attr parts "id" (Parse.non_empty_string, BewitAttributes.id_)
+    >>= req_attr parts "exp" (Parse.unix_sec_instant, BewitAttributes.expiry_)
     >>= req_attr parts "mac" (Parse.id, BewitAttributes.mac_)
     >>= opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)
     >>- Writer.``return``
     >>= Impl.validate_credentials settings.creds_repo
+    >>= Impl.validate_method
+    >>= Impl.validate_mac req
+    >>= Impl.validate_ttl now_with_offset
     >>- Impl.map_result)
