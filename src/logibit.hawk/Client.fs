@@ -1,6 +1,7 @@
 ﻿module logibit.hawk.Client
 
 open System
+open System.Collections.Specialized
 open System.Net.Http
 open System.Net.Http.Headers
 
@@ -170,4 +171,39 @@ let setAuthHeader (req : HttpRequestMessage) (headerData : HeaderData) =
   req.Headers.Authorization <- header
   req
 
-let bewit = Bewit.gen
+let bewit = Bewit.genBase64Str
+
+/// Sets the Bewit query param on the System.Net.Http.HttpRequestMessage
+/// instance. You need to open System.Net.Http to do interesting things, and
+/// the actual value to return is in System.Net.Http.Headers.
+let setBewit (req : HttpRequestMessage) (bewit : string) =
+
+  let parse (q : string) =
+    q.Split('&')
+    |> Array.map (fun x -> x.Split('='))
+    |> Array.map (function
+        | xs when xs.Length = 1 -> xs.[0], None
+        | xs -> xs.[0], Some xs.[1])
+    |> List.ofArray
+
+  let add (k, v) (xs : _ list) =
+    (k, Some v) :: xs
+
+  let merge (vals : (string * string option) list) =
+    vals
+    |> List.filter (not << String.IsNullOrEmpty << fst)
+    |> List.map (fun (k, v) -> Uri.EscapeUriString k, (v |> Option.map Uri.EscapeUriString))
+    |> List.map (function
+        | k, Some v -> String.Concat [| k; "="; v|]
+        | k, None   -> String.Concat [| k; "=" |])
+    |> fun xs -> String.Join("&", xs)
+
+  let ub = UriBuilder req.RequestUri
+
+  ub.Query <-
+    parse req.RequestUri.Query
+    |> add ("bewit", bewit)
+    |> merge
+
+  req.RequestUri <- ub.Uri
+  req

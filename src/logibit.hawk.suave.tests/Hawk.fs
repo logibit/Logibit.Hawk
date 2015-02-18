@@ -22,6 +22,8 @@ open Suave.Http.RequestErrors
 open Suave.Types
 open Suave.Testing
 
+open NodaTime
+
 open Fuchu
 
 let runWithDefaultConfig = runWith defaultConfig
@@ -35,24 +37,24 @@ type User =
   { homepage : Uri
     realName : string }
 
+let settings =
+  { Settings.empty<User> () with
+      credsRepo = fun id ->
+        (credsInner id, { homepage = Uri("https://logibit.se"); realName = "Henrik" })
+        |> Choice1Of2 }
+
+let sampleFullHawkHeader =
+  Hawk.authenticate
+    settings
+    Hawk.bindHeaderReq
+    (fun err -> UNAUTHORIZED (err.ToString()))
+    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
+
+let req m data fReq fResp =
+  reqResp m "/" "" data None System.Net.DecompressionMethods.None fReq fResp
+
 [<Tests>]
-let makingRequest =
-  let settings =
-    { Settings.empty<User> () with
-        credsRepo = fun id ->
-          (credsInner id, { homepage = Uri("https://logibit.se"); realName = "Henrik" })
-          |> Choice1Of2 }
-
-  let sampleApp =
-    Hawk.authenticate
-      settings
-      Hawk.bindReq
-      (fun err -> UNAUTHORIZED (err.ToString()))
-      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
-
-  let req m data fReq fResp =
-    reqResp m "/" "" data None System.Net.DecompressionMethods.None fReq fResp
-
+let serverClientAuthentication =
   let ensureAuthHeader = function
     | Choice1Of2 res -> res
     | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
@@ -66,9 +68,9 @@ let makingRequest =
     req.Content <- new System.Net.Http.ByteArrayContent(bs)
     req
 
-  testList "authentication cases" [
+  testList "Server<->Client authentication cases" [
     testCase "when not signing request" <| fun _ ->
-      runWithDefaultConfig sampleApp |> req HttpMethod.GET None id (fun resp ->
+      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None id (fun resp ->
         Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
         let resStr = resp.Content.ReadAsStringAsync().Result
         Assert.StringContains("body", "Missing header 'authorization'", resStr)
@@ -77,7 +79,7 @@ let makingRequest =
     testCase "when signing GET request" <| fun _ ->
       let opts = ClientOptions.mk' (credsInner "1")
       let request = setAuthHeader HM.GET opts
-      runWithDefaultConfig sampleApp |> req HttpMethod.GET None request (fun resp ->
+      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
@@ -87,7 +89,46 @@ let makingRequest =
       let request =
         setAuthHeader HM.POST opts
         >> setBytes [| 0uy; 1uy |]
-      runWithDefaultConfig sampleApp |> req HttpMethod.POST None request (fun resp ->
+      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.POST None request (fun resp ->
+        Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+        Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+        )
+    ]
+
+open logibit.hawk.Bewit
+
+let clock =
+  SystemClock.Instance
+
+let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
+
+[<Tests>]
+let bewitServerClientAuth =
+  let ensureBewit = function
+    | Choice1Of2 res -> res
+    | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
+
+  let setBewitQuery opts req =
+    Client.bewit (Uri("http://127.0.0.1:8083/")) opts
+    |> Client.setBewit req
+
+  let sampleBewitAuth =
+    Hawk.authenticateBewit
+      settings
+      Hawk.bindQueryRequest
+      (fun err -> UNAUTHORIZED (err.ToString()))
+      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
+
+  testList "Bewit Server<->Client authentication" [
+    testCase "GET request with bewit" <| fun _ ->
+      let opts =
+        { credentials      = credsInner "1"
+          ttl              = Duration.FromSeconds 60L
+          localClockOffset = Duration.Zero
+          clock            = clock
+          ext              = None }
+      let request = setBewitQuery opts
+      runWithDefaultConfig sampleBewitAuth |> req HttpMethod.GET None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )

@@ -4,11 +4,12 @@ open System
 
 open Suave.Model
 open Suave.Types
-type SHttpMethod = HttpMethod
+type private SHttpMethod = HttpMethod
 
 open logibit.hawk
 open logibit.hawk.Types
 open logibit.hawk.Server
+open logibit.hawk.Bewit
 
 module private Impl =
   open Microsoft.FSharp.Reflection
@@ -45,7 +46,7 @@ module private Impl =
 [<Literal>]
 let HawkDataKey = "logibit.hawk.data"
 
-/// ReqFactory :: Settings<'a> -> HttpContext -> Choice<Req, string>
+/// ReqHeaderFactory :: Settings<'a> -> HttpContext -> Choice<Req, string>
 ///
 /// You can bind the last argument to a function
 /// that maps your request changing function into the choice. Or in code:
@@ -60,38 +61,63 @@ let HawkDataKey = "logibit.hawk.data"
 ///        mreq >>- (fun req ->
 ///                   // and change the port so we can find our way:
 ///                   { req with port = Some 8080us }))
-type ReqFactory<'a> = Settings<'a> -> HttpContext -> Choice<Req, string>
+type ReqHeaderFactory<'a> = Settings<'a> -> HttpContext -> Choice<HeaderRequest, string>
+
+type ReqQueryFactory<'a> = Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
 
 open logibit.hawk.ChoiceOperators // Choice's binding of >>=
 
-let bindReq (s : Settings<'a>) ctx : Choice<Req, string> =
+let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
   let ub = UriBuilder (ctx.request.url)
   ub.Host <- ctx.request.host.value
 
   Binding.header "authorization" Choice1Of2 ctx.request
-  >>= (fun header ->
-    Binding.header "host" Choice1Of2 ctx.request
-    >>- fun host -> header, host)
-  >>- (fun (auth, host) ->
+  >>- (fun auth ->
     { ``method``    = Impl.fromSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       authorisation = auth
       payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
       host          = None
       port          = None
-      contentType  = ctx.request.header "content-type"})
+      contentType  = ctx.request.header "content-type" })
 
-// Example functor of the bindReq function:
-//let bindReqStr s =
-//  bindReq s >> (fun mreq -> mreq >>- (fun req -> { req with port = Some 8080us }))
+// Example functor of the bindHeaderReq function:
+//let bindHeaderReqStr s =
+//  bindHeaderReq s >> (fun mreq -> mreq >>- (fun req -> { req with port = Some 8080us }))
 
-let authCtx (settings : Settings<'a>) (requestFactory : ReqFactory<'a>) =
+let authHeader (settings : Settings<'a>) (requestFactory : ReqHeaderFactory<'a>) =
   fun ctx ->
     requestFactory settings ctx
     >>@ AuthError.Other
     >>= Server.authenticate settings
 
-let authCtxDefault s = authCtx s bindReq
+[<Obsolete("Use authHeader instead")>]
+let authCtx a = authHeader a
+
+let authHeaderDefault s = authHeader s bindHeaderReq
+
+[<Obsolete("Use authHeaderDefault instead")>]
+let authCtxDefault a = authHeaderDefault a
+
+let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
+  let ub = UriBuilder (ctx.request.url)
+  ub.Host <- ctx.request.host.value
+
+  Binding.query "bewit" Choice1Of2 ctx.request
+  >>- (fun bewit ->
+    { ``method``    = Impl.fromSuaveMethod ctx.request.``method``
+      uri           = ub.Uri
+      host          = None
+      port          = None })
+
+let authBewit (settings : Settings<'a>) (requestFactory : ReqQueryFactory<'a>) =
+  fun ctx ->
+    requestFactory settings ctx
+    >>@ BewitError.Other
+    >>= Bewit.authenticate settings
+
+let authBewitDefault (settings : Settings<'a>) =
+  authBewit settings bindQueryRequest
 
 open Suave.Http // this changes binding of >>=
 
@@ -108,21 +134,34 @@ open Suave.Http // this changes binding of >>=
 /// Also see the comments on the ReqFactory type for docs on how to contruct
 /// your own Req value, or re-map the default one.
 let authenticate (settings : Settings<'a>)
-                 (reqFac : ReqFactory<'a>)
+                 (reqFac : ReqHeaderFactory<'a>)
                  (fErr : AuthError -> WebPart)
                  (fCont : _ -> WebPart)
                  : WebPart =
   fun ctx ->
-    match authCtx settings reqFac ctx with
+    match authHeader settings reqFac ctx with
     | Choice1Of2 res ->
       (Writers.setUserData HawkDataKey res
        >>= fCont res) ctx
     | Choice2Of2 err ->
       fErr err ctx
 
-/// Like `authenticate` but with the default request factory function.
+/// Like `authenticate` but with the default header request factory function.
 let authenticateDefault settings =
-  authenticate settings bindReq
+  authenticate settings bindHeaderReq
+
+let authenticateBewit settings reqFac fErr fCont : WebPart =
+  fun ctx ->
+    match authBewit settings reqFac ctx with
+    | Choice1Of2 res ->
+      (Writers.setUserData HawkDataKey res
+       >>= fCont res) ctx
+    | Choice2Of2 err ->
+      fErr err ctx
+
+/// Like `authenticateBewit` but with the default query request factory function.
+let authenticateBewitDefault settings =
+  authenticateBewit settings bindQueryRequest
 
 module HttpContext =
 
