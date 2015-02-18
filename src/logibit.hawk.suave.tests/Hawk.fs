@@ -24,7 +24,7 @@ open Suave.Testing
 
 open Fuchu
 
-let run_with' = run_with default_config
+let runWithDefaultConfig = runWith defaultConfig
 
 let creds_inner id =
   { id        = id
@@ -51,7 +51,7 @@ let making_request =
       (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.real_name))
 
   let req m data f_req f_resp =
-    req_resp m "/" "" data None System.Net.DecompressionMethods.None f_req f_resp
+    reqResp m "/" "" data None System.Net.DecompressionMethods.None f_req f_resp
 
   let ensure_auth_header = function
     | Choice1Of2 res -> res
@@ -68,7 +68,7 @@ let making_request =
 
   testList "authentication cases" [
     testCase "when not signing request" <| fun _ ->
-      run_with' sample_app |> req HttpMethod.GET None id (fun resp ->
+      runWithDefaultConfig sample_app |> req HttpMethod.GET None id (fun resp ->
         Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
         let res_str = resp.Content.ReadAsStringAsync().Result
         Assert.StringContains("body", "Missing header 'authorization'", res_str)
@@ -77,7 +77,7 @@ let making_request =
     testCase "when signing GET request" <| fun _ ->
       let opts = ClientOptions.mk' (creds_inner "1")
       let request = set_auth_header HM.GET opts
-      run_with' sample_app |> req HttpMethod.GET None request (fun resp ->
+      runWithDefaultConfig sample_app |> req HttpMethod.GET None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
@@ -87,7 +87,7 @@ let making_request =
       let request =
         set_auth_header HM.POST opts
         >> set_bytes [| 0uy; 1uy |]
-      run_with' sample_app |> req HttpMethod.POST None request (fun resp ->
+      runWithDefaultConfig sample_app |> req HttpMethod.POST None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
