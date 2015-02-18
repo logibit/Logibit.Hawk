@@ -17,6 +17,7 @@ type BewitError =
   | DecodeError of message: string
   // Wrong number of arguments after decoding
   | BadArguments of arguments_given: string
+  // Request method other than GET
   | WrongMethodError of message: string
   | CredsError of CredsError
   | BadMac of header_given:string * calculated:string
@@ -102,11 +103,20 @@ module internal Impl =
 
   let to_bewit_error key = function
     | ParseError msg -> InvalidAttribute (key, msg)
-
+  
   let validate_credentials creds_repo (attrs : BewitAttributes) =
     creds_repo attrs.id
     >>@ BewitError.from_creds_error
     >>- fun cs -> attrs, cs
+
+  let validate_method ((attrs : BewitAttributes), cs) =
+    if attrs.``method``.ToString() = "GET" then
+      Choice1Of2 (attrs, cs)
+    else
+      sprintf "wrong method supplied to request. Should be 'GET', but was given '%O'"
+        attrs.``method``
+      |> WrongMethodError
+      |> Choice2Of2
 
   let validate_mac req (attrs, cs) =
     let calc_mac =
@@ -115,14 +125,16 @@ module internal Impl =
     if String.eq_ord_cnst_time calc_mac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (BadMac (attrs.mac, calc_mac))
+      BadMac (attrs.mac, calc_mac)
+      |> Choice2Of2
 
   let validate_ttl (now_with_offset : Instant)
                    (({ expiry = expiry } as attrs), cs) =
     if expiry > now_with_offset then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (BewitTtlExpired (expiry, now_with_offset))
+      BewitTtlExpired (expiry, now_with_offset)
+      |> Choice2Of2
 
   let decode_from_base64 (req : BewitRequest) =
     req.uri.Query.Split '&'
@@ -197,6 +209,7 @@ let authenticate (settings: Settings<'a>)
     >>= opt_attr parts "ext" (Parse.id, BewitAttributes.ext_)
     >>- Writer.``return``
     >>= Impl.validate_credentials settings.creds_repo
+    >>= Impl.validate_method
     >>= Impl.validate_mac req
     >>= Impl.validate_ttl now_with_offset
     >>- Impl.map_result)

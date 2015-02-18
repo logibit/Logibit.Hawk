@@ -114,16 +114,16 @@ let authentication =
   let uri_builder = UriBuilder "http://example.com/resource/4"
   let uri_params = "a=1&b=2"
 
+  let opts =
+    { BewitOptions.credentials = creds_inner
+      ttl                      = Duration.FromSeconds 300L
+      clock                    = clock
+      local_clock_offset       = ts 1356420407232L - clock.Now
+      ext                      = Some "some-app-data" }
+
   let bewit_request f_inspect =
-    let opts =
-      { BewitOptions.credentials = creds_inner
-        ttl                      = Duration.FromSeconds 300L
-        clock                    = clock
-        local_clock_offset       = ts 1356420407232L - clock.Now
-        ext                      = Some "some-app-data" }
-      |> f_inspect
     uri_builder.Query <- uri_params
-    let bewit = Bewit.generate_str_base64 uri_builder.Uri.AbsoluteUri opts
+    let bewit = Bewit.generate_str_base64 uri_builder.Uri.AbsoluteUri (opts |> f_inspect)
     uri_builder.Query <- String.Join("&", [| uri_params ; "bewit=" + bewit |])
     { ``method`` = GET
       uri        = uri_builder.Uri
@@ -146,8 +146,8 @@ let authentication =
 
     testCase "should successfully authenticate a request (last param)" <| fun _ ->
       uri_builder.Query <- String.Join("&",
-        [|uri_params
-          "bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"|] )
+        [|uri_params ;
+          "bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ"|])
       { ``method`` = GET
         uri        = uri_builder.Uri
         host       = None
@@ -160,7 +160,7 @@ let authentication =
 
     testCase "should successfully authenticate a request (first param)" <| fun _ ->
       uri_builder.Query <- String.Join("&",
-        [|"bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
+        [|"bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ"
           uri_params|] )
       { ``method`` = GET
         uri        = uri_builder.Uri
@@ -173,8 +173,9 @@ let authentication =
         Assert.Equal("return value", "steve", user)
 
     testCase "should successfully authenticate a request (only param)" <| fun _ ->
+      uri_builder.Query <- String.Empty
       uri_builder.Query <-
-        "bewit=MTIzNDU2XDQ1MTE0ODQ2MjFcMzFjMmNkbUJFd1NJRVZDOVkva1NFb2c3d3YrdEVNWjZ3RXNmOGNHU2FXQT1cc29tZS1hcHAtZGF0YQ"
+        "bewit=MTIzNDU2XDEzNTY0MjA3MDdcSWYvYzNYOVdTYmc5a1RZUlJHbWdwZHBGYnlkdm0wZVY4ZkVGVnNjcFdTOD1cc29tZS1hcHAtZGF0YQ"
       { ``method`` = GET
         uri        = uri_builder.Uri
         host       = None
@@ -194,7 +195,7 @@ let authentication =
       |> ensure_err
       |> function
       | WrongMethodError _ -> ()
-      | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+      | err -> Tests.failtestf "wrong error, expected WrongMethodError, got '%A'" err
 
     testCase "should fail on invalid host header" <| fun _ ->
       uri_builder.Query <- String.Join("&",
