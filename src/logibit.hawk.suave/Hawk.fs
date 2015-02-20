@@ -63,6 +63,21 @@ let HawkDataKey = "logibit.hawk.data"
 ///                   { req with port = Some 8080us }))
 type ReqHeaderFactory<'a> = Settings<'a> -> HttpContext -> Choice<HeaderRequest, string>
 
+/// ReqQueryFactory :: Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
+///
+/// You can bind the last argument to a function
+/// that maps your request changing function into the choice. Or in code:
+///
+/// let plxGoto8080MR s =
+///   bindReq s
+///   // when you've bound the request, apply the following function to
+///   // the return value (the Choice of QueryRequest or a string error)
+///   >> (fun mreq ->
+///        // map over the OK result (non error case), see
+///        // https://github.com/logibit/logibit.hawk#logibithawkchoice
+///        mreq >>- (fun req ->
+///                   // and change the port so we can find our way:
+///                   { req with port = Some 8080us }))
 type ReqQueryFactory<'a> = Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
 
 open logibit.hawk.ChoiceOperators // Choice's binding of >>=
@@ -128,7 +143,7 @@ open Suave.Http // this changes binding of >>=
 /// This will also set `HawkDataKey` in the `userState` dictionary.
 ///
 /// You might want to use authenticate' unless you're running behind
-/// a load balancer and need to replace your `bindReq` function (in this
+/// a load balancer and need to replace your `bindHeaderReq` function (in this
 /// module) with something of your own.
 ///
 /// Also see the comments on the ReqFactory type for docs on how to contruct
@@ -150,6 +165,16 @@ let authenticate (settings : Settings<'a>)
 let authenticateDefault settings =
   authenticate settings bindHeaderReq
 
+/// Authenticate the Bewit request with the given settings, and a request getting function (ReqFactory) and
+/// then a continuation functor for both the successful case and the unauthorised case.
+///
+/// This will also set `HawkDataKey` in the `userState` dictionary.
+///
+/// You might want to use authenticateBewitDefault unless you're running behind a load balancer and need to
+// replace your `bindQueryRequest` function (in this module) with something of your own.
+///
+/// Also see the comments on the ReqQueryFactory type for docs on how to contruct your own Req value,
+/// or re-map the default one. Authenticates Bewit and returns a WebPart for composing with Suave
 let authenticateBewit settings reqFac fErr fCont : WebPart =
   fun ctx ->
     match authBewit settings reqFac ctx with

@@ -310,7 +310,10 @@ type Settings<'a> =
     localClockOffset : Duration
 
     /// An extra nonce validator - allows you to keep track of the last,
-    /// say, 1000 nonces, to be safe against replay attacks.
+    /// say, 1000 nonces, to be safe against replay attacks. By default
+    /// saves in memory, so if you want to run across load balancers, then
+    /// replace this validator with something that stores data shared
+    /// between the nodes.
     nonceValidator   : string * Instant -> Choice<unit, NonceError>
 
     /// Credentials repository to fetch credentials based on UserId
