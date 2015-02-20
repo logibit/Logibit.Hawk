@@ -144,6 +144,14 @@ module internal Impl =
     |> Choice.ofOption
         (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
 
+  let logFailure (logger : Logger) timestamp (err : BewitError) =
+    { message   = "authenticate failure"
+      level     = Info
+      path      = "logibit.hawk.Bewit.authenticate"
+      data      = [ "error", box err ] |> Map.ofList
+      timestamp = timestamp }
+    |> logger.Log
+
   let mapResult (a, (b, c)) = a, b, c
 
   let removeBewitFromUri (uri : Uri) =
@@ -208,4 +216,5 @@ let authenticate (settings : Settings<'a>)
     >>= Impl.validateMethod
     >>= Impl.validateMac req
     >>= Impl.validateTTL nowWithOffset
-    >>- Impl.mapResult)
+    >>- Impl.mapResult
+    >>* Impl.logFailure settings.logger now)
