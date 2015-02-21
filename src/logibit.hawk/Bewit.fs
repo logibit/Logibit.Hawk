@@ -20,7 +20,10 @@ type BewitError =
   // Request method other than GET
   | WrongMethodError of message: string
   | CredsError of CredsError
-  | BadMac of headerGiven:string * calculated:string
+  /// The calculated HMAC value for the request doesn't match the given mac
+  /// value. Compare the normalised value that the MAC is calculated from, with
+  /// the normalised value from the client, to debug.
+  | BadMac of macGiven:string * macCalculated:string * normalised:string
   /// A Bewit attribute cannot be turned into something the computer
   /// understands
   | InvalidAttribute of name:string * message:string
@@ -33,6 +36,11 @@ with
   override x.ToString() =
     match x with
     | Other s -> s
+    | BadMac (given, calculated, normalised) ->
+      sprintf "BadMac(given: %s, calculated: %s), normalised:\n%s"
+              given calculated normalised
+    | BewitTtlExpired (expiry, now) ->
+      sprintf "BewitTtlExpired(expires: %O, now: %O)" expiry now
     | x -> sprintf "%A" x
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -119,14 +127,13 @@ module internal Impl =
       |> Choice2Of2
 
   let validateMac req (attrs, cs) =
-    let calcMac =
-      FullAuth.fromBewitAttributes (fst cs) req.host req.port attrs
-      |> Crypto.calcMac "bewit"
+    let norm, calcMac =
+      FullAuth.fromBewitAttrs (fst cs) req.host req.port attrs
+      |> Crypto.calcNormMac "bewit"
     if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
-      BadMac (attrs.mac, calcMac)
-      |> Choice2Of2
+      Choice2Of2 (BadMac (attrs.mac, calcMac, norm))
 
   let validateTTL (nowWithOffset : Instant)
                    (({ expiry = expiry } as attrs), cs) =
@@ -189,7 +196,7 @@ let authenticate (settings : Settings<'a>)
       level   = Verbose
       path    = "logibit.hawk.Bewit.authenticate"
       data    =
-        [ "nowWithOffset", box nowWithOffset
+        [ "now_with_offset", box nowWithOffset
           "req", box (
             [ "method", box req.``method``
               "uri", box req.uri

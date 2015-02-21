@@ -261,7 +261,7 @@ module FullAuth =
       app          = a.app
       dlg          = a.dlg }
 
-  let fromBewitAttributes creds (host : string option) (port : Port option) (a : BewitAttributes) =
+  let fromBewitAttrs creds (host : string option) (port : Port option) (a : BewitAttributes) =
     { credentials  = creds
       timestamp    = a.expiry
       nonce        = a.nonce

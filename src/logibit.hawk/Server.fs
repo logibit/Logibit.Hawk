@@ -25,10 +25,11 @@ type AuthError =
   /// There was a problem when validating the credentials of the principal
   | CredsError of CredsError
   /// The calculated HMAC value for the request (and/or payload) doesn't
-  /// match the given mac value
-  | BadMac of headerGiven:string * calculated:string
+  /// match the given mac value. Compare the normalised value that the MAC is
+  /// calculated from, with the normalised value from the client, to debug.
+  | BadMac of macGiven:string * macCalculated:string * normalised:string
   /// The hash of the payload does not match the given hash.
-  | BadPayloadHash of hashGiven:string * calculated:string
+  | BadPayloadHash of hashGiven:string * hashCalculated:string
   /// The nonce was invalid
   | NonceError of NonceError
   /// The request has been too delayed to be accepted or has been replayed
@@ -39,6 +40,14 @@ type AuthError =
   override x.ToString() =
     match x with
     | Other s -> s
+    | BadMac (given, calculated, normalised) ->
+      sprintf "BadMac(given: %s, calculated: %s), normalised:\n%s"
+              given calculated normalised
+    | BadPayloadHash (given, calculated) ->
+      sprintf "BadPayloadHash(given: %s, calculated: %s)" given calculated
+    | StaleTimestamp (given, server, offsetServer) ->
+      sprintf "StaleTimestamp(given: %O, server: %O, offsetServer: %O)"
+              given server offsetServer
     | x -> sprintf "%A" x
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -138,13 +147,13 @@ module internal Impl =
     >>- fun cs -> attrs, cs
 
   let validateMac req (attrs, cs) =
-    let calcMac =
+    let norm, calcMac =
       FullAuth.fromHawkAttrs (fst cs) req.host req.port attrs
-      |> Crypto.calcMac "header"
+      |> Crypto.calcNormMac "header"
     if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
-      Choice2Of2 (BadMac (attrs.mac, calcMac))
+      Choice2Of2 (BadMac (attrs.mac, calcMac, norm))
 
   let validatePayload req ((attrs : HawkAttributes), cs) =
     match req.payload with
@@ -216,10 +225,10 @@ let authenticate (s : Settings<'a>)
       level   = Debug
       path    = "logibit.hawk.Server.authenticate"
       data    =
-        [ "nowWithOffset", box nowWithOffset
+        [ "now_with_offset", box nowWithOffset
           "req", box (
             [ "header", box req.authorisation
-              "contentType", box req.contentType
+              "content_type", box req.contentType
               "host", box req.host
               "method", box req.``method``
               "payload_length", box (req.payload |> Option.map (fun bs -> bs.Length))
@@ -228,7 +237,7 @@ let authenticate (s : Settings<'a>)
             ] |> Map.ofList)
           "s", box (
             [ "allowed_clock_skew", box s.allowedClockSkew
-              "localClockOffset", box s.localClockOffset
+              "local_clock_offset", box s.localClockOffset
             ] |> Map.ofList)
         ] |> Map.ofList
       timestamp = now })

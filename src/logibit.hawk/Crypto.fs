@@ -71,6 +71,12 @@ let genNormStr (``type`` : string) (opts : FullAuth) =
         | Some dlg -> yield sprintf "%s\n" dlg
       ]
 
-let calcMac (``type`` : string) (opts : FullAuth) =
-  let normalised = genNormStr ``type`` opts
+/// Generate the normalised string and a mac value that's been calculated from
+/// that normalised string.
+let calcNormMac (typ : string) (opts : FullAuth) =
+  let normalised = genNormStr typ opts
+  normalised,
   createHmac opts.credentials.algorithm opts.credentials.key normalised
+
+/// Generate a mac value from the normalised string of the opts passed (FullAuth)
+let calcMac typ = calcNormMac typ >> snd
