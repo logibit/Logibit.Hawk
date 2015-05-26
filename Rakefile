@@ -15,7 +15,7 @@ task :prepare do
   system 'git submodule update --init'
   Dir.chdir 'src/vendor/hawk.js' do
     system 'npm install'
-    system 'npm test'
+    #system 'npm test'
   end
 end
 

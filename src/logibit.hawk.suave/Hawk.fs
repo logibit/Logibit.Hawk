@@ -94,7 +94,7 @@ let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
       payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
       host          = None
       port          = None
-      contentType  = ctx.request.header "content-type" })
+      contentType  = ctx.request.header "content-type" |> Option.ofChoice })
 
 // Example functor of the bindHeaderReq function:
 //let bindHeaderReqStr s =
