@@ -139,7 +139,7 @@ module internal Impl =
     if subject.StartsWith literalPrefix then
       Choice1Of2 ()
     else
-      Choice2Of2 (String.Concat [ "String doesn't start with; "; literalPrefix ])
+      Choice2Of2 (String.Concat [ "String '"; subject; "' doesn't start with; "; literalPrefix ])
 
   let validateCredentials credsRepo (attrs : HawkAttributes) =
     credsRepo attrs.id
