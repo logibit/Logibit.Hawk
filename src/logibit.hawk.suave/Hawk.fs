@@ -84,7 +84,7 @@ open logibit.hawk.ChoiceOperators // Choice's binding of >>=
 
 let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
   let ub = UriBuilder (ctx.request.url)
-  ub.Host <- ctx.request.host.value
+  ub.Host <- ctx.request.host
 
   Binding.header "authorization" Choice1Of2 ctx.request
   >>- (fun auth ->
@@ -116,7 +116,7 @@ let authCtxDefault a = authHeaderDefault a
 
 let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
   let ub = UriBuilder (ctx.request.url)
-  ub.Host <- ctx.request.host.value
+  ub.Host <- ctx.request.host
 
   Binding.query "bewit" Choice1Of2 ctx.request
   >>- (fun bewit ->

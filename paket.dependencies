@@ -1,10 +1,10 @@
 source https://www.nuget.org/api/v2
 
-nuget FsCheck ~> 1.0
-nuget FSharp.Core ~> 3.1
-nuget Fuchu-suave ~> 0.6.1
-nuget Fuchu-suave.FsCheck ~> 0.6.1
-nuget NodaTime ~> 1.3
+nuget FsCheck
+nuget FSharp.Core ~> 3.1.2.5
+nuget Fuchu-suave
+nuget Fuchu-suave.FsCheck
+nuget NodaTime
 nuget NuGet.CommandLine
-nuget Suave ~> 0.25
-nuget Suave.Testing ~> 0.25
+nuget Suave
+nuget Suave.Testing
