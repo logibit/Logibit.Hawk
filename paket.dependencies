@@ -2,8 +2,9 @@ source https://www.nuget.org/api/v2
 
 nuget FsCheck
 nuget FSharp.Core ~> 3.1.2.5
-nuget Fuchu-suave
-nuget Fuchu-suave.FsCheck
+nuget Fuchu
+nuget Fuchu
+nuget Fuchu.FsCheck
 nuget NodaTime
 nuget NuGet.CommandLine
 nuget Suave
