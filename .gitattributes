@@ -1,0 +1,3 @@
+﻿*.sln text eol=lf
+*.lock text eol=lf
+*.fsproj text eol=lf
