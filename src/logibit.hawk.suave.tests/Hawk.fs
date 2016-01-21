@@ -16,17 +16,16 @@ open logibit.hawk.Client
 open Suave
 open Suave.Web
 open Suave.Http
-open Suave.Http.Applicatives
-open Suave.Http.Successful
-open Suave.Http.RequestErrors
-open Suave.Types
+open Suave.Logging
 open Suave.Testing
+open Suave.RequestErrors
+open Suave.Successful
 
 open NodaTime
 
 open Fuchu
 
-let runWithDefaultConfig = runWith defaultConfig
+let runWithDefaultConfig = runWith { defaultConfig with logger = Loggers.ConsoleWindowLogger(LogLevel.Warn) }
 
 let credsInner id =
   { id        = id

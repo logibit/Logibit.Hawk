@@ -2,8 +2,8 @@
 
 open System
 
+open Suave
 open Suave.Model
-open Suave.Types
 type private SHttpMethod = HttpMethod
 
 open logibit.hawk
@@ -156,8 +156,7 @@ let authenticate (settings : Settings<'a>)
   fun ctx ->
     match authHeader settings reqFac ctx with
     | Choice1Of2 res ->
-      (Writers.setUserData HawkDataKey res
-       >>= fCont res) ctx
+      (fCont res |> Writers.setUserData HawkDataKey) ctx
     | Choice2Of2 err ->
       fErr err ctx
 
@@ -179,8 +178,7 @@ let authenticateBewit settings reqFac fErr fCont : WebPart =
   fun ctx ->
     match authBewit settings reqFac ctx with
     | Choice1Of2 res ->
-      (Writers.setUserData HawkDataKey res
-       >>= fCont res) ctx
+      (fCont res |> Writers.setUserData HawkDataKey) ctx
     | Choice2Of2 err ->
       fErr err ctx
 
