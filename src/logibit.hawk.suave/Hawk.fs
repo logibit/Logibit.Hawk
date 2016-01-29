@@ -1,11 +1,11 @@
-﻿module Suave.Http.Hawk
+﻿module Suave.Hawk
 
 open System
 
+open Suave
+open Suave.Operators
 open Suave.Model
-open Suave.Types
 type private SHttpMethod = HttpMethod
-
 open logibit.hawk
 open logibit.hawk.Types
 open logibit.hawk.Server
@@ -134,8 +134,6 @@ let authBewit (settings : Settings<'a>) (requestFactory : ReqQueryFactory<'a>) =
 let authBewitDefault (settings : Settings<'a>) =
   authBewit settings bindQueryRequest
 
-open Suave.Http // this changes binding of >>=
-
 /// Authenticate the request with the given settings, and a request
 /// getting function (ReqFactory) and then a continuation functor for
 /// both the successful case and the unauthorised case.
@@ -157,7 +155,7 @@ let authenticate (settings : Settings<'a>)
     match authHeader settings reqFac ctx with
     | Choice1Of2 res ->
       (Writers.setUserData HawkDataKey res
-       >>= fCont res) ctx
+       >=> fCont res) ctx
     | Choice2Of2 err ->
       fErr err ctx
 
@@ -180,7 +178,7 @@ let authenticateBewit settings reqFac fErr fCont : WebPart =
     match authBewit settings reqFac ctx with
     | Choice1Of2 res ->
       (Writers.setUserData HawkDataKey res
-       >>= fCont res) ctx
+       >=> fCont res) ctx
     | Choice2Of2 err ->
       fErr err ctx
 
