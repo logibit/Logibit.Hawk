@@ -15,18 +15,18 @@ open logibit.hawk.Client
 
 open Suave
 open Suave.Web
-open Suave.Http
-open Suave.Http.Applicatives
-open Suave.Http.Successful
-open Suave.Http.RequestErrors
-open Suave.Types
+open Suave.Filters
+open Suave.Successful
+open Suave.RequestErrors
 open Suave.Testing
 
 open NodaTime
 
 open Fuchu
 
-let runWithDefaultConfig = runWith defaultConfig
+let runWithDefaultConfig =
+  runWith { defaultConfig with
+              bindings = [ HttpBinding.mkSimple HTTP "127.0.0.1" 8999 ] }
 
 let credsInner id =
   { id        = id
@@ -60,7 +60,7 @@ let serverClientAuthentication =
     | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
 
   let setAuthHeader methd opts req =
-    Client.header (Uri("http://127.0.0.1:8083/")) methd opts
+    Client.header (Uri("http://127.0.0.1:8999/")) methd opts
     |> ensureAuthHeader
     |> Client.setAuthHeader req
 
@@ -109,7 +109,7 @@ let bewitServerClientAuth =
     | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
 
   let setBewitQuery opts req =
-    Client.bewit (Uri("http://127.0.0.1:8083/")) opts
+    Client.bewit (Uri("http://127.0.0.1:8999/")) opts
     |> Client.setBewit req
 
   let sampleBewitAuth =
