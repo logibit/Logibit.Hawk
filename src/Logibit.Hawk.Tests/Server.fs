@@ -2,15 +2,11 @@
 
 open System
 open System.Text
-
 open Fuchu
-
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Types
 open Logibit.Hawk.Client
-
 open Logibit.Hawk.Tests.Shared
 open Logibit.Hawk.Server
 

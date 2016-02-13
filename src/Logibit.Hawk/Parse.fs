@@ -2,9 +2,7 @@
 
 open System
 open System.Globalization
-
 open NodaTime
-
 open Logibit.Hawk.Prelude
 open Logibit.Hawk.Types
 open Choice

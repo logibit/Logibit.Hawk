@@ -4,25 +4,21 @@ open System
 open System.Net
 open System.Net.Http
 open System.Net.Http.Headers
-
 open Fuchu
-
-open Logibit.Hawk.Types
-type HM = HttpMethod
-open Logibit.Hawk
-open Logibit.Hawk.Server
-open Logibit.Hawk.Client
-
 open Suave
 open Suave.Web
 open Suave.Filters
 open Suave.Successful
 open Suave.RequestErrors
 open Suave.Testing
-
+open Logibit.Hawk.Types
+type HM = HttpMethod
+open Logibit.Hawk
+open Logibit.Hawk.Server
+open Logibit.Hawk.Client
 open NodaTime
-
 open Fuchu
+open Suave.Http
 
 let runWithDefaultConfig =
   runWith { defaultConfig with
