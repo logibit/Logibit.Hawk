@@ -53,7 +53,7 @@ let genNormStr (``type`` : string) (opts : FullAuth) =
       yield sprintf "%s\n" opts.nonce
       yield sprintf "%O\n" opts.``method``
       yield sprintf "%s\n" opts.resource
-      yield sprintf "%s\n" (String.toLowerInv opts.host)
+      yield sprintf "%s\n" (String.toLowerInvariant opts.host)
       yield sprintf "%d\n" opts.port
       yield sprintf "%s\n" (opts.hash |> Option.orDefault "")
       match opts.ext with

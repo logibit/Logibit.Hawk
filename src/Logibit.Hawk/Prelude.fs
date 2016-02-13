@@ -12,9 +12,6 @@ module Hoek =
 
 module String =
 
-  let toLowerInv (str : string) =
-    str.ToLowerInvariant()
-
   /// Ordinally compare two strings in constant time, bounded by the length of the
   /// longest string.
   let eqOrdConstTime (str1 : string) (str2 : string) =
