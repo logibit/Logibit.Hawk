@@ -272,20 +272,6 @@ logging at that level.
 This means that logging at that level, and computing the log lines, needs only
 be done if we can really do something with them.
 
-#### Example
-
-From the source code, with annotations:
-
-``` fsharp
-let validateNonce validator
-                  ((attrs : HawkAttributes), cs) :
-                  : Choice<_, AuthError> =
-  validator (attrs.nonce, attrs.ts) // => Choice<unit, NonceError>
-  >>- fun _ -> attrs, cs // => Choice<HawkAttributes * 'cs, NonceError>
-  >>@ AuthError.fromNonceError
-  // => Choice<HawkAttributes * 'cs, AuthError>
-```
-
 ### Other APIs
 
 There are some modules that are currently internal as to avoid conflicting with
