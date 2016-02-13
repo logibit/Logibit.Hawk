@@ -73,7 +73,9 @@ let server =
       allowedClockSkew = Duration.FromMilliseconds 8000L
       localClockOffset = Duration.Zero
       nonceValidator   = Settings.nonceValidatorNoop
-      credsRepo        = fun id -> Choice1Of2 (credsInner id, "steve") }
+      credsRepo        = fun id -> Choice1Of2 (credsInner id, "steve")
+      useProxyHost     = false
+      useProxyPort     = false }
 
   let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
 

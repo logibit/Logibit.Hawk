@@ -82,8 +82,8 @@ type ReqHeaderFactory<'a> = Settings<'a> -> HttpContext -> Choice<HeaderRequest,
 type ReqQueryFactory<'a> = Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
 
 let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
-  let ub = UriBuilder (ctx.request.url)
-  ub.Host <- ctx.request.host
+  let ub = UriBuilder ctx.request.url
+  ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
   Binding.header "authorization" Choice1Of2 ctx.request
   >!> (fun auth ->
@@ -92,8 +92,8 @@ let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
       authorisation = auth
       payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
       host          = None
-      port          = None
-      contentType  = ctx.request.header "content-type" |> Option.ofChoice })
+      port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None
+      contentType   = ctx.request.header "content-type" |> Option.ofChoice })
 
 // Example functor of the bindHeaderReq function:
 //let bindHeaderReqStr s =

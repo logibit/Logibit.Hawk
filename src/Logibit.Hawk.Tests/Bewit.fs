@@ -108,7 +108,9 @@ let settings =
     allowedClockSkew = Duration.FromMilliseconds 300L
     localClockOffset = ts 1356420407232L - clock.Now
     nonceValidator   = Settings.nonceValidatorMem
-    credsRepo        = fun id -> Choice1Of2 (credsInner, "steve") }
+    credsRepo        = fun id -> Choice1Of2 (credsInner, "steve")
+    useProxyHost     = false
+    useProxyPort     = false }
 
 [<Tests>]
 let authentication =

@@ -318,7 +318,19 @@ type Settings<'a> =
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    credsRepo        : CredsRepo<'a> }
+    credsRepo        : CredsRepo<'a>
+
+    /// Enable this flag if your proxy sets the headers "x-forwarded-host". If
+    /// your proxy doesn't, a malicious client can spoof the headers for any
+    /// domain. It is up implementations like Logibit.Hawk.Suave to read and
+    /// use this setting.
+    useProxyHost     : bool
+
+    /// Enable this flag if your proxy sets the headers "x-forwarded-port". If
+    /// your proxy doesn't, a malicious client can spoof the headers for any
+    /// domain. It is up implementations like Logibit.Hawk.Suave to read and
+    /// use this setting.
+    useProxyPort     : bool }
 
 module Settings =
   open System.Collections.Concurrent
@@ -346,7 +358,9 @@ module Settings =
       allowedClockSkew   = Duration.FromSeconds 60L
       localClockOffset   = Duration.Zero
       nonceValidator     = nonceValidatorMem
-      credsRepo          = fun _ -> Choice2Of2 CredentialsNotFound }
+      credsRepo          = fun _ -> Choice2Of2 CredentialsNotFound
+      useProxyHost       = false
+      useProxyPort       = false }
 
 /// The pieces of the request that the `authenticateBewit` method cares about.
 type QueryRequest =
