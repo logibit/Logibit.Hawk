@@ -10,6 +10,7 @@ open Logibit.Hawk
 open Logibit.Hawk.Types
 open Logibit.Hawk.Server
 open Logibit.Hawk.Bewit
+open Choice.Operators
 
 module private Impl =
   open Microsoft.FSharp.Reflection
@@ -80,14 +81,12 @@ type ReqHeaderFactory<'a> = Settings<'a> -> HttpContext -> Choice<HeaderRequest,
 ///                   { req with port = Some 8080us }))
 type ReqQueryFactory<'a> = Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
 
-open Logibit.Hawk.ChoiceOperators // Choice's binding of >>=
-
 let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
   let ub = UriBuilder (ctx.request.url)
   ub.Host <- ctx.request.host
 
   Binding.header "authorization" Choice1Of2 ctx.request
-  >>- (fun auth ->
+  >!> (fun auth ->
     { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       authorisation = auth
@@ -103,7 +102,7 @@ let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
 let authHeader (settings : Settings<'a>) (requestFactory : ReqHeaderFactory<'a>) =
   fun ctx ->
     requestFactory settings ctx
-    >>@ AuthError.Other
+    >@> AuthError.Other
     >>= Server.authenticate settings
 
 [<Obsolete("Use authHeader instead")>]
@@ -119,7 +118,7 @@ let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
   ub.Host <- ctx.request.host
 
   Binding.query "bewit" Choice1Of2 ctx.request
-  >>- (fun bewit ->
+  >!> (fun bewit ->
     { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       host          = None
@@ -128,7 +127,7 @@ let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
 let authBewit (settings : Settings<'a>) (requestFactory : ReqQueryFactory<'a>) =
   fun ctx ->
     requestFactory settings ctx
-    >>@ BewitError.Other
+    >@> BewitError.Other
     >>= Bewit.authenticate settings
 
 let authBewitDefault (settings : Settings<'a>) =

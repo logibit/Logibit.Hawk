@@ -45,6 +45,10 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\paket-files\haf\YoLo\YoLo.fs">
+      <Paket>True</Paket>
+      <Link>paket-files/YoLo.fs</Link>
+    </Compile>
     <Compile Include="AssemblyVersionInfo.fs" />
     <Compile Include="Hawk.fs" />
   </ItemGroup>

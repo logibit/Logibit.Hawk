@@ -38,7 +38,7 @@ let nonEmptyString = function
   | x when String.Empty = x -> Choice2Of2 (ParseError "needed input to be non-empty string")
   | x -> Choice1Of2 x
 
-open ChoiceOperators
+open Choice.Operators
 
 let reqAttr
   fMissing
@@ -52,8 +52,8 @@ let reqAttr
   match m |> Map.tryFind key with
   | Some value ->
     parser value
-    >>- Writer.bind write w
-    >>@ fBadParse key
+    >!> Writer.bind write w
+    >@> fBadParse key
   | None ->
     Choice2Of2 (fMissing key)
 

@@ -272,32 +272,6 @@ logging at that level.
 This means that logging at that level, and computing the log lines, needs only
 be done if we can really do something with them.
 
-### `Logibit.Hawk.Choice`
-
-This module adds some functions for composing Choice-s:
-
- - `ofOption : onError:'b -> Choice<'a, 'b>` - convert an option to a choice
- - `(>>=) : m:Choice<'a, 'b> -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` -
-   the normal bind operator, defined on choice
- - `bind` - same as above
- - `(>>!) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - the normal
-   bind operator, defined on the error case of choice
- - `bind2` - same as above
- - `lift : a:'a -> Choice<'a, 'b>` - lift the value a into the choice
- - `(>>~) : a:'a -> f:('a -> Choice<'c, 'b>) -> Choice<'c, 'b>` - lift the value
-   a and bind f to the resulting choice -- useful for "start with this value and
-   then run this sequence of bind/map/map2 on the choice values that flow".
- - `liftBind` - same as above
- - `(>>-) : m:Choice<'a, 'b> -> f:('a -> 'c) -> Choice<'c, 'b>` - map the
-   first/successful choice value to another one (and another type, possibly).
- - `map` - same as above
- - `(>>@) : m:Choice<'a, 'b> -> f:('b -> 'c) -> Choice<'a, 'c>` - map the
-   second/error choice value to another one (and another type, possibly).
- - `map2` - same as above
- - `(>>*) : m:Choice<'a, 'b> -> f:('b -> unit) -> Choice<'a, 'b>` - inject
-   a side-effect if the choice is in the error case.
- - `inject2` - same as above
-
 #### Example
 
 From the source code, with annotations:

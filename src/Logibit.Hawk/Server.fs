@@ -1,16 +1,13 @@
 ﻿module Logibit.Hawk.Server
 
 open System
-
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Crypto
 open Logibit.Hawk.Encoding
 open Logibit.Hawk.Logging
 open Logibit.Hawk.Types
-
-open ChoiceOperators
+open Choice.Operators
 
 type UserId = string
 
@@ -143,8 +140,8 @@ module internal Impl =
 
   let validateCredentials credsRepo (attrs : HawkAttributes) =
     credsRepo attrs.id
-    >>@ AuthError.ofCredsError
-    >>- fun cs -> attrs, cs
+    >@> AuthError.ofCredsError
+    >!> fun cs -> attrs, cs
 
   let validateMac req (attrs, cs) =
     let norm, calcMac =
@@ -173,8 +170,8 @@ module internal Impl =
 
   let validateNonce validator ((attrs : HawkAttributes), cs) =
     validator (attrs.nonce, attrs.ts)
-    >>- fun _ -> attrs, cs
-    >>@ AuthError.ofNonceError
+    >!> fun _ -> attrs, cs
+    >@> AuthError.ofNonceError
 
   let validateTimestamp (now : Instant)
                         (allowedTsSkew : Duration)
@@ -202,8 +199,8 @@ open Impl
 let parseHeader (header : string) =
   header
   >>~ startsWith "Hawk "
-  >>@ AuthError.FaultyAuthorizationHeader
-  >>- fun _ ->
+  >@> AuthError.FaultyAuthorizationHeader
+  >!> fun _ ->
     (header
     |> Regex.replace "\AHawk\s" ""
     |> Regex.split ",\s*"
@@ -257,14 +254,14 @@ let authenticate (s : Settings<'a>)
       >>= optAttr header "ext" (Parse.id, HawkAttributes.ext_)
       >>= optAttr header "app" (Parse.id, HawkAttributes.app_)
       >>= optAttr header "dlg" (Parse.id, HawkAttributes.dlg_)
-      >>- Writer.``return``
+      >!> Writer.``return``
       >>= validateCredentials s.credsRepo
       >>= validateMac req
       >>= validatePayload req
       >>= validateNonce s.nonceValidator
       >>= validateTimestamp nowWithOffset s.allowedClockSkew s.localClockOffset
-      >>- mapResult
-      >>* logFailure s.logger now
+      >!> mapResult
+      >>@ logFailure s.logger now
 
 /// Authenticate payload hash - used when payload cannot be provided
 /// during authenticate()

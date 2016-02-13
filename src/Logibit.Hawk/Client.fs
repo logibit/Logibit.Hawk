@@ -4,14 +4,11 @@ open System
 open System.Collections.Specialized
 open System.Net.Http
 open System.Net.Http.Headers
-
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Logging
-
-open ChoiceOperators
 open Logibit.Hawk.Types
+open Choice.Operators
 
 type ClientOptions =
   { /// Credentials to the server
@@ -127,7 +124,7 @@ let header (uri  : Uri)
            (pars : ClientOptions)
            : Choice<HeaderData, HeaderError> =
   Validation.validateHeaderData meth pars
-  >>- fun _ ->
+  >!> fun _ ->
     let hash =
       match pars.hash with
       | Some h -> Some h
