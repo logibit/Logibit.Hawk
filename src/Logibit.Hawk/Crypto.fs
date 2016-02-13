@@ -13,7 +13,7 @@ open Logibit.Hawk.Types
 let headerVersion = "1"
 
 let private initPayloadHash (algo : Algo) contentType =
-  let h = Hash.mk' algo.DotNetString (String.Concat ["hawk."; headerVersion; ".payload\n" ])
+  let h = Hash.mkSimple algo.DotNetString (String.Concat ["hawk."; headerVersion; ".payload\n" ])
   Hash.updateStr h (String.Concat [Hoek.parseContentType contentType; "\n"])
   h
 

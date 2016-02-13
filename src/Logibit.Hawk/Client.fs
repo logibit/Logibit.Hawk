@@ -37,7 +37,7 @@ type ClientOptions =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ClientOptions =
-  let mk' creds =
+  let mkSimple creds =
     { credentials        = creds
       timestamp          = SystemClock.Instance.Now
       nonce              = None

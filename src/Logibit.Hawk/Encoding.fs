@@ -16,4 +16,4 @@ module ModifiedBase64Url =
     let base64Url = modifiedBase64Url.PadRight(modifiedBase64Url.Length + (4 - modifiedBase64Url.Length % 4) % 4, '=')
     let base64Text = base64Url.Replace('-', '+').Replace('_', '/')
     let decodedBytes = Convert.FromBase64String(base64Text)
-    UTF8.string decodedBytes
+    UTF8.toString decodedBytes

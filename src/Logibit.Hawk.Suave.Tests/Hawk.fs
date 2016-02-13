@@ -73,7 +73,7 @@ let serverClientAuthentication =
         )
 
     testCase "when signing GET request" <| fun _ ->
-      let opts = ClientOptions.mk' (credsInner "1")
+      let opts = ClientOptions.mkSimple (credsInner "1")
       let request = setAuthHeader HM.GET opts
       runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None request (fun resp ->
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
@@ -81,7 +81,7 @@ let serverClientAuthentication =
         )
 
     testCase "when signing POST request" <| fun _ ->
-      let opts = { ClientOptions.mk' (credsInner "1") with payload = Some [| 0uy; 1uy |] }
+      let opts = { ClientOptions.mkSimple (credsInner "1") with payload = Some [| 0uy; 1uy |] }
       let request =
         setAuthHeader HM.POST opts
         >> setBytes [| 0uy; 1uy |]
