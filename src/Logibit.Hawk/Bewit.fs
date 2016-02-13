@@ -130,7 +130,7 @@ module internal Impl =
     let norm, calcMac =
       FullAuth.ofBewitAttrs (fst cs) req.host req.port attrs
       |> Crypto.calcNormMac "bewit"
-    if String.eqOrdConstTime calcMac attrs.mac then
+    if String.equalsConstantTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
       Choice2Of2 (BadMac (attrs.mac, calcMac, norm))

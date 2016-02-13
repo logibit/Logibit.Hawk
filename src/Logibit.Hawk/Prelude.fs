@@ -1,15 +1,6 @@
 ﻿[<AutoOpen>]
 module internal Logibit.Hawk.Prelude
 
-module Option =
-
-  let orDefault (defaults : 'a) (o : 'a option) =
-    o |> Option.fold (fun s t -> t) defaults
-
-  let ofChoice = function
-    | Choice1Of2 x -> Some x
-    | Choice2Of2 _ -> None
-
 module Hoek =
 
   let parseContentType = function

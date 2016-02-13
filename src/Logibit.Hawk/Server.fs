@@ -150,7 +150,7 @@ module internal Impl =
     let norm, calcMac =
       FullAuth.ofHawkAttrs (fst cs) req.host req.port attrs
       |> Crypto.calcNormMac "header"
-    if String.eqOrdConstTime calcMac attrs.mac then
+    if String.equalsConstantTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
     else
       Choice2Of2 (BadMac (attrs.mac, calcMac, norm))
@@ -166,7 +166,7 @@ module internal Impl =
       Choice.ofOption (MissingAttribute "hash") attrs.hash
       >>= fun attrsHash ->
         let calcHash = Crypto.calcPayloadHashString req.payload creds.algorithm req.contentType
-        if String.eqOrdConstTime calcHash attrsHash then
+        if String.equalsConstantTime calcHash attrsHash then
           Choice1Of2 (attrs, cs)
         else
           Choice2Of2 (BadPayloadHash(attrsHash, calcHash))
@@ -282,7 +282,7 @@ let authenticatePayload (payload : byte [])
                         (contentType : string) =
 
   let calcHash = Crypto.calcPayloadHashString (Some payload) creds.algorithm (Some contentType)
-  String.eqOrdConstTime calcHash givenHash
+  String.equalsConstantTime calcHash givenHash
 
 /// Authenticate bewit uri
 let authenticateBewit (settings : Settings<'a>) 
