@@ -53,10 +53,10 @@ type AuthError =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module AuthError =
   /// Use constructor as function
-  let fromCredsError = CredsError
+  let ofCredsError = CredsError
 
   /// Use constructor as function
-  let fromNonceError = NonceError
+  let ofNonceError = NonceError
 
 /// The pieces of the request that the `authenticate` method cares about.
 type HeaderRequest =
@@ -143,12 +143,12 @@ module internal Impl =
 
   let validateCredentials credsRepo (attrs : HawkAttributes) =
     credsRepo attrs.id
-    >>@ AuthError.fromCredsError
+    >>@ AuthError.ofCredsError
     >>- fun cs -> attrs, cs
 
   let validateMac req (attrs, cs) =
     let norm, calcMac =
-      FullAuth.fromHawkAttrs (fst cs) req.host req.port attrs
+      FullAuth.ofHawkAttrs (fst cs) req.host req.port attrs
       |> Crypto.calcNormMac "header"
     if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
@@ -174,7 +174,7 @@ module internal Impl =
   let validateNonce validator ((attrs : HawkAttributes), cs) =
     validator (attrs.nonce, attrs.ts)
     >>- fun _ -> attrs, cs
-    >>@ AuthError.fromNonceError
+    >>@ AuthError.ofNonceError
 
   let validateTimestamp (now : Instant)
                         (allowedTsSkew : Duration)

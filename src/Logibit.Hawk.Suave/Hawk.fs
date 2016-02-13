@@ -14,13 +14,13 @@ open Logibit.Hawk.Bewit
 module private Impl =
   open Microsoft.FSharp.Reflection
 
-  let fromStr<'a> s =
+  let ofStr<'a> s =
     let t = typeof<'a>
     match FSharpType.GetUnionCases t |> Array.filter (fun case -> case.Name = s) with
     | [|case|] -> FSharpValue.MakeUnion(case,[||]) :?> 'a
     | err -> failwithf "couldn't find union case %s.%s" t.Name s
 
-  let fromSuaveMethod =
+  let ofSuaveMethod =
     function
     | SHttpMethod.GET -> GET
     | SHttpMethod.HEAD -> HEAD
@@ -88,7 +88,7 @@ let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
 
   Binding.header "authorization" Choice1Of2 ctx.request
   >>- (fun auth ->
-    { ``method``    = Impl.fromSuaveMethod ctx.request.``method``
+    { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       authorisation = auth
       payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
@@ -120,7 +120,7 @@ let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
 
   Binding.query "bewit" Choice1Of2 ctx.request
   >>- (fun bewit ->
-    { ``method``    = Impl.fromSuaveMethod ctx.request.``method``
+    { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       host          = None
       port          = None })

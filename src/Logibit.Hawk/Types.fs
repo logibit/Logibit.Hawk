@@ -248,7 +248,7 @@ module FullAuth =
     (fun x -> x.dlg),
     fun v (x : FullAuth) -> { x with dlg = v }
 
-  let fromHawkAttrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
+  let ofHawkAttrs creds (host : string option) (port : Port option) (a : HawkAttributes) =
     { credentials  = creds
       timestamp    = a.ts
       nonce        = a.nonce
@@ -261,7 +261,7 @@ module FullAuth =
       app          = a.app
       dlg          = a.dlg }
 
-  let fromBewitAttrs creds (host : string option) (port : Port option) (a : BewitAttributes) =
+  let ofBewitAttrs creds (host : string option) (port : Port option) (a : BewitAttributes) =
     { credentials  = creds
       timestamp    = a.expiry
       nonce        = a.nonce
@@ -378,7 +378,7 @@ type BewitAuthError =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitAuthError =
   /// Use constructor as function
-  let fromCredsError = CredsError
+  let ofCredsError = CredsError
 
 /// A structure that represents the fully calculated hawk request data structure
 type BewitFullAuth =
@@ -396,5 +396,5 @@ module BewitFullAuth =
     (fun x -> x.``method``),
     fun v (x : BewitFullAuth) -> { x with ``method`` = v }
 
-  let fromAttributes (attributes : BewitAttributes) =
+  let ofAttributes (attributes : BewitAttributes) =
     attributes

@@ -46,7 +46,7 @@ with
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitError =
   /// Use constructor as function
-  let fromCredsError = BewitError.CredsError
+  let ofCredsError = BewitError.CredsError
 
 type BewitOptions =
   { /// Credentials to generate the bewit with
@@ -114,7 +114,7 @@ module internal Impl =
   
   let validateCredentials credsRepo (attrs : BewitAttributes) =
     credsRepo attrs.id
-    >>@ BewitError.fromCredsError
+    >>@ BewitError.ofCredsError
     >>- fun cs -> attrs, cs
 
   let validateMethod ((attrs : BewitAttributes), cs) =
@@ -128,7 +128,7 @@ module internal Impl =
 
   let validateMac req (attrs, cs) =
     let norm, calcMac =
-      FullAuth.fromBewitAttrs (fst cs) req.host req.port attrs
+      FullAuth.ofBewitAttrs (fst cs) req.host req.port attrs
       |> Crypto.calcNormMac "bewit"
     if String.eqOrdConstTime calcMac attrs.mac then
       Choice1Of2 (attrs, cs)
