@@ -9,3 +9,5 @@ nuget NodaTime
 nuget NuGet.CommandLine
 nuget Suave
 nuget Suave.Testing
+
+github haf/YoLo YoLo.fs

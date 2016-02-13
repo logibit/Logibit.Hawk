@@ -20,9 +20,9 @@ been translated.
 ## Usage (Suave Example)
 
 ``` fsharp
-open logibit.hawk
-open logibit.hawk.Types
-open logibit.hawk.Server
+open Logibit.Hawk
+open Logibit.Hawk.Types
+open Logibit.Hawk.Server
 
 open Suave
 open Suave.Http // houses submodule 'Hawk'
@@ -35,7 +35,7 @@ type User =
   { homepage  : Uri
     realName : string }
 
-// this is the structure that is the 'context' for logibit.hawk
+// this is the structure that is the 'context' for Logibit.Hawk
 let settings =
   // this is what the lib is looking for to verify the request
   let sampleCreds =
@@ -67,7 +67,7 @@ let sampleApp settings : WebPart =
 
 Currently the code is only fully documented - but not outside the code, so have
 a browse to [the source
-code](https://github.com/logibit/logibit.hawk/blob/master/src/logibit.hawk/Server.fs#L1)
+code](https://github.com/logibit/Logibit.Hawk/blob/master/src/Logibit.Hawk/Server.fs#L1)
 that you are interested in to see how the API composes.
 
 ## Usage from client:
@@ -134,14 +134,14 @@ module.exports = function (method, resource, data, opts) {
 
 ## Changelog
 
-Please have a look at [Releases](https://github.com/logibit/logibit.hawk/releases).
+Please have a look at [Releases](https://github.com/logibit/Logibit.Hawk/releases).
 
 ## API
 
 This is the public API of the library. It mimics the API of Hawk.js - the
 [reference implementation](https://github.com/hueniverse/hawk/blob/master/lib/client.js).
 
-### `logibit.hawk.Bewit`
+### `Logibit.Hawk.Bewit`
 
 These functions are available to creating and verifying Bewits.
 
@@ -155,7 +155,7 @@ These functions are available to creating and verifying Bewits.
 
 TBD - docs.
 
-### `logibit.hawk.Client`
+### `Logibit.Hawk.Client`
 
 These functions are available, checked functions are implemented
 
@@ -165,7 +165,7 @@ These functions are available, checked functions are implemented
    [Response Payload Validation](https://github.com/hueniverse/hawk#response-payload-validation).
  - [ ] message - generate an authorisation string for a message
 
-### `logibit.hawk.Server`
+### `Logibit.Hawk.Server`
 
  - [x] authenticate - authenticate a request
  - [x] authenticatePayload - authenticate the payload of a request - assumes
@@ -226,7 +226,7 @@ to the server properly, or the server implementation doesn't feed the correct
 Content-Type header (e.g. it doesn't trim the stuff after the first MimeType
 declaration, before the semi-colon `;`).
 
-### `logibit.hawk.Crypto`
+### `Logibit.Hawk.Crypto`
 
 The crypto module contains functions for validating the pieces of the request.
 
@@ -235,7 +235,7 @@ The crypto module contains functions for validating the pieces of the request.
  - [x] calcPayloadHash - calculates the payload hash from a given string
  - [x] calcHmac - calculates the HMAC for a given string
 
-### `logibit.hawk.Types`
+### `Logibit.Hawk.Types`
 
 This module contains the shared types that you should use for interacting with
 the above modules.
@@ -251,7 +251,7 @@ This module also contains a module-per-type with lenses for that type. The
 lenses follow the same format as [Aether](https://github.com/xyncro/aether)
 recommends.
 
-### `logibit.hawk.Logging`
+### `Logibit.Hawk.Logging`
 
 Types:
 
@@ -272,7 +272,7 @@ logging at that level.
 This means that logging at that level, and computing the log lines, needs only
 be done if we can really do something with them.
 
-### `logibit.hawk.Choice`
+### `Logibit.Hawk.Choice`
 
 This module adds some functions for composing Choice-s:
 

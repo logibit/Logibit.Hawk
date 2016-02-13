@@ -18,3 +18,7 @@ NUGET
       FSharp.Core (>= 3.1.2.5)
       Fuchu (>= 1.0.2)
       Suave (>= 1.1.1)
+GITHUB
+  remote: haf/YoLo
+  specs:
+    YoLo.fs (c9ef58870d2627e49ca0659358c42f213c0385aa)

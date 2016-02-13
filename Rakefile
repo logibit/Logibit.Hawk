@@ -17,6 +17,8 @@ task :prepare do
     system 'npm install'
     #system 'npm test'
   end
+  system %{ruby -pi.bak -e "gsub(/module internal YoLo/, 'module internal Logibit.Hawk.YoLo')" paket-files/haf/YoLo/YoLo.fs} \
+    unless Albacore.windows?
 end
 
 desc 'create assembly infos'
@@ -36,7 +38,7 @@ desc 'Perform fast build (warn: doesn\'t d/l deps)'
 build :quick_compile do |b|
   b.prop 'Configuration', Configuration
   b.logging = 'detailed'
-  b.sln     = 'src/logibit.hawk.sln'
+  b.sln     = 'src/Logibit.Hawk.sln'
 end
 
 task :paket_bootstrap do
@@ -51,7 +53,7 @@ end
 desc 'Perform full build'
 build :compile => [:versioning, :restore, :assembly_info] do |b|
   b.prop 'Configuration', Configuration
-  b.sln     = 'src/logibit.hawk.sln'
+  b.sln     = 'src/Logibit.Hawk.sln'
 end
 
 directory 'build/pkg'
@@ -66,20 +68,20 @@ nugets_pack :create_nugets => ['build/pkg', :versioning, :compile] do |p|
   p.with_metadata do |m|
     m.description = 'A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.'
     m.authors     = 'Henrik Feldt, Logibit AB'
-    m.project_url = 'https://github.com/logibit/logibit.hawk'
+    m.project_url = 'https://github.com/logibit/Logibit.Hawk'
     m.tags        = 'fsharp hawk authentication authorization security hawknet'
     m.version     = ENV['NUGET_VERSION']
-    m.icon_url    = 'https://raw.githubusercontent.com/logibit/logibit.hawk/master/tools/hawk.png'
+    m.icon_url    = 'https://raw.githubusercontent.com/logibit/Logibit.Hawk/master/tools/hawk.png'
   end
 end
 
 namespace :tests do
   task :hawk do
-    system "src/logibit.hawk.tests/bin/#{Configuration}/logibit.hawk.tests.exe", clr_command: true
+    system "src/Logibit.Hawk.tests/bin/#{Configuration}/Logibit.Hawk.tests.exe", clr_command: true
   end
 
   task :suave do
-    system "src/logibit.hawk.suave.tests/bin/#{Configuration}/logibit.hawk.suave.tests.exe", clr_command: true
+    system "src/Logibit.Hawk.suave.tests/bin/#{Configuration}/Logibit.Hawk.suave.tests.exe", clr_command: true
   end
 
   task :unit => [:hawk, :suave]
