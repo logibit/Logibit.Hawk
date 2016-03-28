@@ -76,6 +76,9 @@ let serverClientAuthentication =
       let opts = ClientOptions.mkSimple (credsInner "1")
       let request = setAuthHeader HM.GET opts
       runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None request (fun resp ->
+        Assert.Equal("should contain 'Vary: Authorization,Cookie'",
+                    ["Authorization"; "Cookie"],
+                    resp.Headers.Vary |> List.ofSeq)
         Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
         Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )

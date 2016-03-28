@@ -154,7 +154,10 @@ let authenticate (settings : Settings<'a>)
     match authHeader settings reqFac ctx with
     | Choice1Of2 res ->
       (Writers.setUserData HawkDataKey res
+       >=> Writers.setHeaderValue "Vary" "Authorization"
+       >=> Writers.setHeaderValue "Vary" "Cookie"
        >=> fCont res) ctx
+
     | Choice2Of2 err ->
       fErr err ctx
 
