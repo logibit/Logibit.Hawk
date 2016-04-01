@@ -115,14 +115,14 @@ let authCtxDefault a = authHeaderDefault a
 
 let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
   let ub = UriBuilder (ctx.request.url)
-  ub.Host <- ctx.request.host
+  ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
   Binding.query "bewit" Choice1Of2 ctx.request
   >!> (fun bewit ->
     { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
       uri           = ub.Uri
       host          = None
-      port          = None })
+      port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None })
 
 let authBewit (settings : Settings<'a>) (requestFactory : ReqQueryFactory<'a>) =
   fun ctx ->
