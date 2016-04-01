@@ -17,6 +17,8 @@ Dependencies: { Aether, FSharp.Core, NodaTime }, nugets [Hawk][ng-h] and
 For all API methods implemented, the full test suite for those methods has also
 been translated.
 
+Sponsored by [qvitoo – A.I. bookkeeping](https://qvitoo.com?utm_source=github).
+
 ## Usage (Suave Example)
 
 ``` fsharp
