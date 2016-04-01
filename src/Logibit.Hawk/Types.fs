@@ -345,10 +345,14 @@ module Settings =
     let cache = MemoryCache.Default
     fun (nonce, ts : Instant) ->
       let in20min = DateTimeOffset.UtcNow.AddMinutes(20.)
-      // returns: if a cache entry with the same key exists, the existing cache entry; otherwise, null.
+      // returns: if a cache entry with the same key exists, the existing cache
+      // entry; otherwise, null.
       match cache.AddOrGetExisting(nonce, ts, in20min) |> box with
-      | null -> Choice1Of2 ()
-      | lastSeen -> Choice2Of2 AlreadySeen
+      | null ->
+        Choice1Of2 ()
+
+      | lastSeen ->
+        Choice2Of2 AlreadySeen
 
   /// Create a new empty settings; beware that it will always return that
   /// the credentials for the id given were not found.

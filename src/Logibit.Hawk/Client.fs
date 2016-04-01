@@ -38,11 +38,11 @@ module ClientOptions =
     { credentials        = creds
       timestamp          = SystemClock.Instance.Now
       nonce              = None
-      contentType       = None
+      contentType        = None
       ext                = None
       payload            = None
       hash               = None
-      localClockOffset = None
+      localClockOffset   = None
       app                = None
       dlg                = None }
 

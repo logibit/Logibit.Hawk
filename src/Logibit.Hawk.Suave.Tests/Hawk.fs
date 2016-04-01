@@ -20,34 +20,41 @@ open NodaTime
 open Fuchu
 open Suave.Http
 
-let runWithDefaultConfig =
-  runWith { defaultConfig with
-              bindings = [ HttpBinding.mkSimple HTTP "127.0.0.1" 8999 ] }
+module Helpers =
+  let runWithDefaultConfig =
+    runWith { defaultConfig with
+                bindings = [ HttpBinding.mkSimple HTTP "127.0.0.1" 8999 ] }
 
-let credsInner id =
-  { id        = id
-    key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
-    algorithm = if id = "1" then SHA1 else SHA256 }
+  let credsInner id =
+    { id        = id
+      key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
+      algorithm = if id = "1" then SHA1 else SHA256 }
 
-type User =
-  { homepage : Uri
-    realName : string }
+  type User =
+    { homepage : Uri
+      realName : string }
 
-let settings =
-  { Settings.empty<User> () with
-      credsRepo = fun id ->
-        (credsInner id, { homepage = Uri("https://logibit.se"); realName = "Henrik" })
-        |> Choice1Of2 }
+  let req m data fReq fResp =
+    reqResp m "/" "" data None System.Net.DecompressionMethods.None fReq fResp
 
-let sampleFullHawkHeader =
-  Hawk.authenticate
-    settings
-    Hawk.bindHeaderReq
-    (fun err -> UNAUTHORIZED (err.ToString()))
-    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
+  let normalSettings =
+    { Settings.empty<User> () with
+        credsRepo = fun id ->
+          (credsInner id, { homepage = Uri("https://logibit.se"); realName = "Henrik" })
+          |> Choice1Of2 }
 
-let req m data fReq fResp =
-  reqResp m "/" "" data None System.Net.DecompressionMethods.None fReq fResp
+  let proxySettings =
+    { normalSettings with useProxyPort = true
+                          useProxyHost = true }
+
+
+  let unauthed err =
+    UNAUTHORIZED (err.ToString())
+
+  let authed (attr, creds, user) =
+    OK (sprintf "authenticated user '%s'" user.realName)
+
+open Helpers
 
 [<Tests>]
 let serverClientAuthentication =
@@ -63,72 +70,149 @@ let serverClientAuthentication =
   let setBytes bs (req : HttpRequestMessage) =
     req.Content <- new System.Net.Http.ByteArrayContent(bs)
     req
+  testList "client-server authentication" [
+    testList "without proxy (defaults)" [
+      let hawkAuthenticate =
+        Hawk.authenticate normalSettings Hawk.bindHeaderReq unauthed authed
 
-  testList "Server<->Client authentication cases" [
-    testCase "when not signing request" <| fun _ ->
-      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None id (fun resp ->
-        Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
-        let resStr = resp.Content.ReadAsStringAsync().Result
-        Assert.StringContains("body", "Missing header 'authorization'", resStr)
+      yield testCase "not signing" <| fun _ ->
+        runWithDefaultConfig hawkAuthenticate
+        |> req HttpMethod.GET None id (fun resp ->
+          Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
+          let resStr = resp.Content.ReadAsStringAsync().Result
+          Assert.StringContains("body", "Missing header 'authorization'", resStr)
         )
 
-    testCase "when signing GET request" <| fun _ ->
-      let opts = ClientOptions.mkSimple (credsInner "1")
-      let request = setAuthHeader HM.GET opts
-      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.GET None request (fun resp ->
-        Assert.Equal("should contain 'Vary: Authorization,Cookie'",
-                    ["Authorization"; "Cookie"],
-                    resp.Headers.Vary |> List.ofSeq)
-        Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-        Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+      yield testCase "signing GET request" <| fun _ ->
+        let opts = ClientOptions.mkSimple (credsInner "1")
+        let request = setAuthHeader HM.GET opts
+
+        runWithDefaultConfig hawkAuthenticate |> req HttpMethod.GET None request (fun resp ->
+          Assert.Equal("should contain 'Vary: Authorization,Cookie'",
+                      ["Authorization"; "Cookie"],
+                      resp.Headers.Vary |> List.ofSeq)
+          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
 
-    testCase "when signing POST request" <| fun _ ->
-      let opts = { ClientOptions.mkSimple (credsInner "1") with payload = Some [| 0uy; 1uy |] }
-      let request =
-        setAuthHeader HM.POST opts
-        >> setBytes [| 0uy; 1uy |]
-      runWithDefaultConfig sampleFullHawkHeader |> req HttpMethod.POST None request (fun resp ->
-        Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-        Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+      yield testCase "signing POST request" <| fun _ ->
+        let opts =
+          { ClientOptions.mkSimple (credsInner "1")
+              with payload = Some [| 0uy; 1uy |] }
+
+        let request =
+          setAuthHeader HM.POST opts
+          >> setBytes [| 0uy; 1uy |]
+
+        runWithDefaultConfig hawkAuthenticate
+        |> req HttpMethod.POST None request (fun resp ->
+          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
+    ]
+
+    testList "with proxy" [
+      let hawkAuthenticate =
+        Hawk.authenticate proxySettings Hawk.bindHeaderReq unauthed authed
+
+      yield testCase "signing POST request" <| fun _ ->
+        let opts = { ClientOptions.mkSimple (credsInner "1") with payload = Some [| 0uy; 1uy |] }
+
+        let request =
+          setAuthHeader HM.POST opts
+          >> setBytes [| 0uy; 1uy |]
+          >> (fun r ->
+            let ub = r.RequestUri |> UriBuilder
+            ub.Host <- "localhost"
+            r.RequestUri <- ub.Uri
+            r)
+          >> (fun r ->
+            // this test is actually "reversed" in that the forwarded host should
+            // be localhost and the listing server should be 127.0.0.1, but becase
+            // we can only bind suave to IPs, this has the same effect
+            r.Headers.Add("x-forwarded-host", ["127.0.0.1"])
+            r.Headers.Add("x-forwarded-port", ["8999"])
+            r)
+
+        // listens on 127.0.0.1
+        runWithDefaultConfig hawkAuthenticate
+        // sends to localhost, which is a mismatch, but carries http headers
+        |> req HttpMethod.POST None request (fun resp ->
+          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+        )
+      ]
     ]
 
 open Logibit.Hawk.Bewit
 
-let clock =
-  SystemClock.Instance
-
-let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
-
 [<Tests>]
 let bewitServerClientAuth =
-  let ensureBewit = function
-    | Choice1Of2 res -> res
-    | Choice2Of2 err -> Tests.failtestf "unexpected %A error" err
+
+  let clock =
+    SystemClock.Instance
+
+  let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
 
   let setBewitQuery opts req =
     Client.bewit (Uri("http://127.0.0.1:8999/")) opts
     |> Client.setBewit req
 
-  let sampleBewitAuth =
-    Hawk.authenticateBewit
-      settings
-      Hawk.bindQueryRequest
-      (fun err -> UNAUTHORIZED (err.ToString()))
-      (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
+  testList "bewit client-server authentication" [
+    testList "without proxy (defaults)" [
+      let hawkBewitAuth =
+        Hawk.authenticateBewit normalSettings Hawk.bindQueryRequest unauthed authed
 
-  testList "Bewit Server<->Client authentication" [
-    testCase "GET request with bewit" <| fun _ ->
-      let opts =
-        { credentials      = credsInner "1"
-          ttl              = Duration.FromSeconds 60L
-          localClockOffset = Duration.Zero
-          clock            = clock
-          ext              = None }
-      let request = setBewitQuery opts
-      runWithDefaultConfig sampleBewitAuth |> req HttpMethod.GET None request (fun resp ->
-        Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-        Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+      yield testCase "signing GET query string" <| fun _ ->
+        let opts =
+          { credentials      = credsInner "1"
+            ttl              = Duration.FromSeconds 60L
+            localClockOffset = Duration.Zero
+            clock            = clock
+            ext              = None }
+
+        let requestf =
+          setBewitQuery opts
+
+        runWithDefaultConfig hawkBewitAuth
+        |> req HttpMethod.GET None requestf (fun resp ->
+          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
         )
     ]
+
+    testList "with proxy" [
+      let hawkBewitProxyAuth =
+        Hawk.authenticateBewit proxySettings Hawk.bindQueryRequest unauthed authed
+
+      yield testCase "signing GET query string" <| fun _ ->
+        let opts =
+          { credentials      = credsInner "1"
+            ttl              = Duration.FromSeconds 60L
+            localClockOffset = Duration.Zero
+            clock            = clock
+            ext              = None }
+
+        let requestf =
+          setBewitQuery opts
+          >> (fun r ->
+            let ub = r.RequestUri |> UriBuilder
+            ub.Host <- "localhost"
+            r.RequestUri <- ub.Uri
+            r)
+          >> (fun r ->
+            // this test is actually "reversed" in that the forwarded host should
+            // be localhost and the listing server should be 127.0.0.1, but becase
+            // we can only bind suave to IPs, this has the same effect
+            r.Headers.Add("x-forwarded-host", ["127.0.0.1"])
+            r.Headers.Add("x-forwarded-port", ["8999"])
+            r)
+
+        runWithDefaultConfig hawkBewitProxyAuth
+        |> req HttpMethod.GET None requestf (fun resp ->
+          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
+          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+        )
+
+    ]
+  ]
