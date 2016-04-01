@@ -51,16 +51,27 @@ let settings =
      // sign: UserId -> Choice<Credentials * 'a, CredsError>
      credsRepo = fun id ->
        (sampleCreds,
-        { homepage = Uri("https://logibit.se"); realName = "Henrik" }
+        { homepage = Uri("https://qvitoo.com"); realName = "Henrik" }
        )
        // no error:
        |> Choice1Of2 }
 
-// you can compose this into the rest of the app, as it's a web part
+// You can compose this into the rest of the app, as it's a web part. In this
+// case you're doing a Authorization header authentication
 let sampleApp settings : WebPart =
   Hawk.authenticate
     settings
-    Hawk.bindReq
+    Hawk.bindHeaderReq
+    // in here you can put your authenticated web parts
+    (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
+    // on failure to authenticate the request
+    (fun err -> UNAUTHORIZED (err.ToString()))
+
+// Similarly for bewits, where you want to authenticate a portion of the query
+// string:
+let sampleApp2 settings : WebPart =
+  Hawk.authenticateBewit
+    settings Hawk.bindQueryRequest
     // in here you can put your authenticated web parts
     (fun (attr, creds, user) -> OK (sprintf "authenticated user '%s'" user.realName))
     // on failure to authenticate the request
@@ -68,8 +79,8 @@ let sampleApp settings : WebPart =
 ```
 
 Currently the code is only fully documented - but not outside the code, so have
-a browse to [the source
-code](https://github.com/logibit/Logibit.Hawk/blob/master/src/Logibit.Hawk/Server.fs#L1)
+a browse to
+[the source code](https://github.com/logibit/Logibit.Hawk/blob/master/src/Logibit.Hawk/Server.fs#L1)
 that you are interested in to see how the API composes.
 
 ## Usage from client:
