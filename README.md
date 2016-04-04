@@ -214,8 +214,8 @@ with your repository function.
 
 If you see `BadMac`, it means probably means you haven't fed the right parameters
 to `authenticate`. Log the input parameters, verify that host and port match
-(are you behind a reverse proxy?) and check that the length of the content is
-the same on the client as on the server.
+(are you [behind a][revproxy-read] [reverse proxy][revproxy]?) and check that the
+length of the content is the same on the client as on the server.
 
 The `BadMac` error comes from hashing a normalised string of these parameters:
 
@@ -292,3 +292,5 @@ libraries, they can be placed on their own and be made public. The modules like 
 
 [ng-h]: https://www.nuget.org/packages/Hawk/
 [ng-hs]: https://www.nuget.org/packages/Hawk.Suave/
+[revproxy]: https://github.com/logibit/Logibit.Hawk/blob/master/src/Logibit.Hawk/Types.fs#L323-L333
+[revproxy-read]: https://github.com/logibit/Logibit.Hawk/blob/master/src/Logibit.Hawk.Suave/Hawk.fs#L86-L95
