@@ -174,7 +174,7 @@ These functions are available, checked functions are implemented
 
  - [x] header - generate a request header for server to authenticate
  - [x] bewit - delegates to Bewit.generate
- - [ ] authenticate - test that server response is authentic, see
+ - [x] authenticate - test that server response is authentic, see
    [Response Payload Validation](https://github.com/hueniverse/hawk#response-payload-validation).
  - [ ] message - generate an authorisation string for a message
 
@@ -186,9 +186,8 @@ These functions are available, checked functions are implemented
    [Payload Validation](https://github.com/hueniverse/hawk#payload-validation)
  - [ ] authenticatePayloadHash
  - [ ] header - generate a server-header for the client to authenticate
- - [ ] authenticateBewit - authenticate a client-supplied bewit, see [Bewit
+ - [x] authenticateBewit - authenticate a client-supplied bewit, see [Bewit
    Usage Example](https://github.com/hueniverse/hawk#bewit-usage-example).
-   TODO: delegate to Bewit.authenticate
  - [ ] authenticateMessage - authenticate a client-supplied message
 
 #### `authenticate` details
