@@ -158,15 +158,15 @@ This is the public API of the library. It mimics the API of Hawk.js - the
 
 These functions are available to creating and verifying Bewits.
 
- - [ ] generate - generate a new bewit from credentials, a uri and an optional
+ - [x] generate - generate a new bewit from credentials, a uri and an optional
        ext field.
- - [ ] generate' - generate a new bewit from credentials, a string uri and an
+ - [x] generate' - generate a new bewit from credentials, a string uri and an
        optional ext field.
- - [ ] authenticate - verify a given bewit
+ - [x] authenticate - verify a given bewit
 
 #### `authenticate` details
 
-TBD - docs.
+TBD - docs, in the meanwhilse, see Server authenticate (superset is validated).
 
 ### `Logibit.Hawk.Client`
 
