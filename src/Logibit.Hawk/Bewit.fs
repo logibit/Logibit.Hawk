@@ -202,7 +202,7 @@ let authenticate (settings : Settings<'TPrincipal>)
       level   = Verbose
       path    = "Logibit.Hawk.Bewit.authenticate"
       data    =
-        [ "now_with_offset", box nowWithOffset
+        [ "nowWithOffset", box nowWithOffset
           "req", box (
             [ "method", box req.``method``
               "uri", box req.uri
