@@ -169,7 +169,8 @@ let bewitServerClientAuth =
             ttl              = Duration.FromSeconds 60L
             localClockOffset = Duration.Zero
             clock            = clock
-            ext              = None }
+            ext              = None
+            logger           = Logging.NoopLogger }
 
         let requestf =
           setBewitQuery opts
@@ -191,7 +192,8 @@ let bewitServerClientAuth =
             ttl              = Duration.FromSeconds 60L
             localClockOffset = Duration.Zero
             clock            = clock
-            ext              = None }
+            ext              = None
+            logger           = Logging.NoopLogger }
 
         let requestf =
           setBewitQuery opts

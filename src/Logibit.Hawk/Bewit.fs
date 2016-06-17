@@ -60,7 +60,9 @@ type BewitOptions =
     /// The clock to use to find the time for the calculation of the bewit.
     clock              : IClock
     /// An optional ext parameter.
-    ext                : string option }
+    ext                : string option
+    /// A logger to log with
+    logger             : Logger }
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module BewitOptions =
@@ -177,12 +179,25 @@ let gen (uri : Uri) (opts : BewitOptions) =
   let now = opts.clock.Now
   let nowWithOffset = opts.clock.Now + opts.localClockOffset // before computing
   let exp = nowWithOffset + opts.ttl
-  let mac =
+  let norm, mac =
     opts
     |> BewitOptions.toAuth nowWithOffset uri exp
-    |> Crypto.calcMac "bewit"
+    |> Crypto.calcNormMac "bewit"
   let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.orDefault ""
+  (fun _ ->
+    { message = "Generate Bewit"
+      level   = Verbose
+      path    = "Logibit.Hawk.Bewit.gen"
+      data    = Map
+        [ "nowWithOffset", box nowWithOffset
+          "normalised", box norm
+          "id", box opts.credentials.id
+          "exp", box exp
+          "mac", box mac
+          "ext", box ext ]
+      timestamp = now }
+  ) |> Logger.debug opts.logger
   // Construct bewit: id\exp\mac\ext
   sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
 
