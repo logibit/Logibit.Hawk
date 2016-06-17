@@ -45,7 +45,8 @@ let ``bewit generation`` =
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
-            ext                      = Some "xandyandz" }
+            ext                      = Some "xandyandz"
+            logger                   = Logging.NoopLogger }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6",
                    b)
@@ -58,7 +59,8 @@ let ``bewit generation`` =
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
-            ext                      = Some "xandyandz" }
+            ext                      = Some "xandyandz"
+            logger                   = Logging.NoopLogger }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
                    b)
@@ -71,7 +73,8 @@ let ``bewit generation`` =
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
-            ext                      = None }
+            ext                      = None
+            logger                   = Logging.NoopLogger }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c",
                    b)
@@ -92,7 +95,8 @@ let ``parsing bewit parts`` =
                         ttl                      = Duration.FromSeconds 300L
                         clock                    = clock
                         localClockOffset         = ts 1356420407232L - clock.Now
-                        ext                      = None }
+                        ext                      = None
+                        logger                   = Logging.NoopLogger }
     match Bewit.parse b with
     | Choice1Of2 map ->
       Assert.Equal("has id", credsInner.id, map |> Map.find "id")
@@ -122,7 +126,8 @@ let authentication =
       ttl                      = Duration.FromSeconds 300L
       clock                    = clock
       localClockOffset         = ts 1356420407232L - clock.Now
-      ext                      = Some "some-app-data" }
+      ext                      = Some "some-app-data"
+      logger                   = Logging.NoopLogger }
 
   let bewitRequest fInspect =
     uriBuilder.Query <- uriParams
