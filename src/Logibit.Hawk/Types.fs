@@ -1,9 +1,7 @@
 module Logibit.Hawk.Types
 
 open System
-
 open NodaTime
-
 open Logibit.Hawk.Logging
 
 type Lens<'a,'b> = ('a -> 'b) * ('b -> 'a -> 'a)

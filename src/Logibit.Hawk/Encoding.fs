@@ -2,6 +2,28 @@
 
 open System
 open System.Text
+open System.Collections.Generic
+
+/// Encode a string as a URI component, meaning that all special-purpose
+/// characters that may cause problems if not encoded, are encoded.
+/// See https://en.wikipedia.org/wiki/Percent-encoding for details.
+let encodeURIComponent =
+  let ``gen-delims``  = [":"; "/"; "?"; "#"; "["; "]"; "@"]
+  let ``sub-delims``  = ["!"; "$"; "&"; "'"; "("; ")"; "*"; "+"; ","; ";"; "="]
+  let delims = Set (List.concat [``gen-delims``; ``sub-delims``] |> List.map char)
+
+  fun (str : string) ->
+    let ss = StringBuilder (float str.Length * 1.1 |> int)
+
+    for c in str do
+      if delims |> Set.contains c then
+        ss.Append (sprintf "%%%x" (Encoding.ASCII.GetBytes([|c|]).[0]))
+        |> ignore
+      else
+        ss.Append c
+        |> ignore
+
+    ss.ToString()
 
 /// For creating something that can be inserted into a URL
 module ModifiedBase64Url =

@@ -189,7 +189,7 @@ let setBewit (req : HttpRequestMessage) (bewit : string) =
   let merge (vals : (string * string option) list) =
     vals
     |> List.filter (not << String.IsNullOrEmpty << fst)
-    |> List.map (fun (k, v) -> Uri.EscapeUriString k, (v |> Option.map Uri.EscapeUriString))
+    |> List.map (fun (k, v) -> Encoding.encodeURIComponent k, (v |> Option.map Encoding.encodeURIComponent))
     |> List.map (function
         | k, Some v -> String.Concat [| k; "="; v|]
         | k, None   -> String.Concat [| k; "=" |])

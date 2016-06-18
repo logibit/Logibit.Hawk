@@ -213,7 +213,7 @@ let authenticate (settings : Settings<'TPrincipal>)
   let nowWithOffset = settings.clock.Now + settings.localClockOffset // before computing
 
   (fun _ ->
-    { message = "authenticate bewit start"
+    { message = "Authenticate Bewit"
       level   = Verbose
       path    = "Logibit.Hawk.Bewit.authenticate"
       data    =

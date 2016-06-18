@@ -1,6 +1,7 @@
 ﻿module Logibit.Hawk.Tests.Uri
 
 open System
+open System.Net
 open System.Diagnostics
 open Fuchu
 open NodaTime
@@ -82,10 +83,37 @@ let ``bewit generation`` =
 
 [<Tests>]
 let ``encoding tests`` =
-  testCase "it should encode and decode a uri to match the original" <| fun _ ->
-    let testUri = "http://example.com:80/resource/4?a=1&b=2"
-    Assert.Equal("return value", testUri,
-                 (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) testUri)
+  testList "encoding tests" [
+    testCase "it should encode and decode a uri to match the original" <| fun _ ->
+      let testUri = "http://example.com:80/resource/4?a=1&b=2"
+      Assert.Equal("return value", testUri,
+                   (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) testUri)
+
+    testCase "System.Uri" <| fun _ ->
+      // https://tools.ietf.org/html/rfc3986 "2.2.  Reserved Characters"
+      let ``gen-delims``  = [":"; "/"; "?"; "#"; "["; "]"; "@"]
+      let ``sub-delims``  = ["!"; "$"; "&"; "'"; "("; ")"; "*"; "+"; ","; ";"; "="]
+      let delims = List.concat [``gen-delims``; ``sub-delims``]
+
+      for value in delims do
+        //printfn "%s: %x" value (System.Text.Encoding.ASCII.GetBytes(value).[0])
+        ()
+
+      for value in delims do
+        Assert.NotEqual("Should encode, changing its value",
+                        Encoding.encodeURIComponent value, value)
+
+      let blob = String.Join("", delims)
+      let encoded = Encoding.encodeURIComponent blob
+      let subject = Uri (sprintf "https://haf.se/?q=%s" encoded)
+
+      Assert.Equal("Path and query should read in an encoded manner",
+                   "/?q="+encoded, subject.PathAndQuery)
+
+      // This fails for the :, [, ] characters
+      //Assert.StringContains("Should contain encoded value when doing ToString",
+      //                      encoded, subject.ToString())
+  ]
 
 [<Tests>]
 let ``parsing bewit parts`` =
