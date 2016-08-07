@@ -96,7 +96,7 @@ module HawkAttributes =
       app        = None
       dlg        = None }
 
-  let mk meth uri =
+  let create meth uri =
     { empty with ``method`` = meth; uri = uri }
 
   let method_ =
@@ -159,7 +159,7 @@ module BewitAttributes =
       mac        = ""
       ext        = None }
 
-  let mk meth uri =
+  let create meth uri =
     { empty with ``method`` = meth; uri = uri }
 
   let id_ =
@@ -356,7 +356,7 @@ module Settings =
   /// the credentials for the id given were not found.
   let empty<'a> () : Settings<'a> =
     { clock              = NodaTime.SystemClock.Instance
-      logger             = Logging.NoopLogger
+      logger             = Targets.create Warn
       allowedClockSkew   = Duration.FromSeconds 60L
       localClockOffset   = Duration.Zero
       nonceValidator     = nonceValidatorMem

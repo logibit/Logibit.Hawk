@@ -25,6 +25,13 @@ module Writer =
   let ``return`` m =
     m.state
 
+module Instant =
+  open NodaTime
+
+  /// Convert the instant to nanoseconds since epoch
+  let toEpochNanos (i : Instant) =
+    i.Ticks * 100L (* 100 nanos per tick *)
+
 module Hash =
   open System.Text
   open System.Security.Cryptography
@@ -47,10 +54,10 @@ module Hash =
     h.TransformFinalBlock([||], 0, 0) |> ignore
     h.Hash
 
-  let mk (algo : string) (bytes : byte[]) =
+  let create (algo : string) (bytes : byte[]) =
     let h = HashAlgorithm.Create algo
     update h bytes
     h
 
-  let mkSimple (algo : string) (s : string) =
-    mk algo (UTF8.bytes s)
+  let createSimple (algo : string) (s : string) =
+    create algo (UTF8.bytes s)

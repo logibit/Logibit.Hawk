@@ -21,7 +21,7 @@ NUGET
 GITHUB
   remote: haf/YoLo
   specs:
-    YoLo.fs (f122eebb2ab82e06ac31ce51f3b4632fb26fd130)
+    YoLo.fs (54c0a81be5bce9db211420dc8315c3daab0d1462)
   remote: logary/logary
   specs:
     src/Logary.Facade/Facade.fs (50abd2450d629491120418718dbd6f74408872a7)

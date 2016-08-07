@@ -1,2 +1,2 @@
 source 'https://rubygems.org'
-gem 'albacore', '~> 2.3.8'
+gem 'albacore'

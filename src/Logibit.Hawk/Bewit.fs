@@ -155,12 +155,12 @@ module internal Impl =
         (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
 
   let logFailure (logger : Logger) timestamp (err : BewitError) =
-    { message   = "authenticate failure"
+    { value     = Event "Authenticate Failure"
       level     = Info
-      path      = "Logibit.Hawk.Bewit.authenticate"
-      data      = [ "error", box err ] |> Map.ofList
-      timestamp = timestamp }
-    |> logger.Log
+      name      = "Logibit.Hawk.Bewit.authenticate".Split('.')
+      fields    = [ "error", box err ] |> Map.ofList
+      timestamp = Instant.toEpochNanos timestamp }
+    |> logger.logSimple
 
   let mapResult (a, (b, c)) = a, b, c
 
@@ -181,19 +181,19 @@ let gen (uri : Uri) (opts : BewitOptions) =
     |> Crypto.calcNormMac "bewit"
   let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.orDefault ""
-  (fun _ ->
-    { message = "Generate Bewit"
-      level   = Verbose
-      path    = "Logibit.Hawk.Bewit.gen"
-      data    = Map
+  opts.logger.verbose (fun level ->
+    { value   = Event "Generate Bewit"
+      level   = level
+      name    = "Logibit.Hawk.Bewit.gen".Split('.')
+      fields  = Map
         [ "nowWithOffset", box nowWithOffset
           "normalised", box norm
           "id", box opts.credentials.id
           "exp", box exp
           "mac", box mac
           "ext", box ext ]
-      timestamp = now }
-  ) |> Logger.debug opts.logger
+      timestamp = Instant.toEpochNanos now }
+  )
   // Construct bewit: id\exp\mac\ext
   sprintf "%s\\%s\\%s\\%s" opts.credentials.id exp mac ext
 
@@ -208,11 +208,11 @@ let authenticate (settings : Settings<'TPrincipal>)
   let now = settings.clock.Now
   let nowWithOffset = settings.clock.Now + settings.localClockOffset // before computing
 
-  (fun _ ->
-    { message = "Authenticate Bewit"
-      level   = Verbose
-      path    = "Logibit.Hawk.Bewit.authenticate"
-      data    =
+  settings.logger.verbose (fun level ->
+    { value   = Event "Authenticate Bewit"
+      level   = level
+      name    = "Logibit.Hawk.Bewit.authenticate".Split('.')
+      fields  =
         [ "nowWithOffset", box nowWithOffset
           "req", box (
             [ "method", box req.``method``
@@ -221,8 +221,7 @@ let authenticate (settings : Settings<'TPrincipal>)
               "port", box req.port
             ] |> Map.ofList)
         ] |> Map.ofList
-      timestamp = now })
-  |> Logger.debug settings.logger
+      timestamp = Instant.toEpochNanos now })
 
   let reqAttr m = Parse.reqAttr MissingAttribute Impl.toBewitError m
   let optAttr m = Parse.optAttr m
@@ -230,7 +229,7 @@ let authenticate (settings : Settings<'TPrincipal>)
   Impl.decodeFromBase64 req
   >>= parse // parse bewit string
   >>= (fun parts ->
-    Writer.lift (BewitAttributes.mk req.``method`` (Impl.removeBewitFromUri req.uri))
+    Writer.lift (BewitAttributes.create req.``method`` (Impl.removeBewitFromUri req.uri))
     >>~ reqAttr parts "id" (Parse.nonEmptyString, BewitAttributes.id_)
     >>= reqAttr parts "exp" (Parse.unixSecInstant, BewitAttributes.expiry_)
     >>= reqAttr parts "mac" (Parse.id, BewitAttributes.mac_)
