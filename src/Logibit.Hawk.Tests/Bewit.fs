@@ -5,13 +5,11 @@ open System.Net
 open System.Diagnostics
 open Fuchu
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Bewit
 open Logibit.Hawk.Encoding
 open Logibit.Hawk.Logging
 open Logibit.Hawk.Types
-
 open Logibit.Hawk.Tests.Shared
 
 let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
@@ -21,12 +19,13 @@ let clock =
 
 type DebugPrinter (name : string) =
   interface Logger with
-    member x.Verbose fLine =
-      Debug.WriteLine (sprintf "%s: %A" name (fLine ()))
-    member x.Debug fLine =
-      Debug.WriteLine (sprintf "%s: %A" name (fLine ()))
-    member x.Log line =
-      Debug.WriteLine (sprintf "%s: %A" name line)
+    member x.logSimple msg =
+      Debug.WriteLine (sprintf "%s: %A" name msg)
+    member x.log level msg =
+      Debug.WriteLine (sprintf "%s: %A" name msg)
+    member x.logWithAck level msgFactory =
+      Debug.WriteLine (sprintf "%s: %A" name (msgFactory level))
+      async.Return ()
 
 let credsInner =
   { id        = "123456"
@@ -47,7 +46,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
-            logger                   = Logging.NoopLogger }
+            logger                   = Logging.Targets.create Logging.Warn }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6",
                    b)
@@ -61,7 +60,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
-            logger                   = Logging.NoopLogger }
+            logger                   = Logging.Targets.create Logging.Warn }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
                    b)
@@ -75,7 +74,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = None
-            logger                   = Logging.NoopLogger }
+            logger                   = Logging.Targets.create Logging.Warn }
       Assert.Equal("bewit should generate correctly",
                    "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c",
                    b)
@@ -124,7 +123,7 @@ let ``parsing bewit parts`` =
                         clock                    = clock
                         localClockOffset         = ts 1356420407232L - clock.Now
                         ext                      = None
-                        logger                   = Logging.NoopLogger }
+                        logger                   = Logging.Targets.create Logging.Warn }
     match Bewit.parse b with
     | Choice1Of2 map ->
       Assert.Equal("has id", credsInner.id, map |> Map.find "id")
@@ -136,7 +135,7 @@ let ``parsing bewit parts`` =
 
 let settings =
   { Settings.clock   = clock
-    logger           = Logging.NoopLogger
+    logger           = Targets.create Warn
     allowedClockSkew = Duration.FromMilliseconds 300L
     localClockOffset = ts 1356420407232L - clock.Now
     nonceValidator   = Settings.nonceValidatorMem
@@ -155,7 +154,7 @@ let authentication =
       clock                    = clock
       localClockOffset         = ts 1356420407232L - clock.Now
       ext                      = Some "some-app-data"
-      logger                   = Logging.NoopLogger }
+      logger                   = Targets.create Warn }
 
   let bewitRequest fInspect =
     uriBuilder.Query <- uriParams
