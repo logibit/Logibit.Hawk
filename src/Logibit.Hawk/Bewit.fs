@@ -1,16 +1,12 @@
 ﻿module Logibit.Hawk.Bewit
 
 open System
-
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Logging
 open Logibit.Hawk.Types
 open Logibit.Hawk.Encoding
 open Logibit.Hawk.Parse
-
-//open ChoiceOperators
 open Choice.Operators
 
 type BewitError =

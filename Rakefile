@@ -1,24 +1,22 @@
 Description = "A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft."
 
 require 'bundler/setup'
-
 require 'albacore'
 require 'albacore/tasks/release'
 require 'albacore/tasks/versionizer'
-require 'albacore/ext/teamcity'
 
 Configuration = 'Release'
 
 Albacore::Tasks::Versionizer.new :versioning
 
-task :prepare do
+task :paket_replace do
   system 'git submodule update --init'
   Dir.chdir 'src/vendor/hawk.js' do
     system 'npm install'
     #system 'npm test'
   end
-  system %{ruby -pi.bak -e "gsub(/module internal YoLo/, 'module internal Logibit.Hawk.YoLo')" paket-files/haf/YoLo/YoLo.fs} \
-    unless Albacore.windows?
+  sh %{ruby -pi.bak -e "gsub(/module YoLo/, 'module internal Logibit.Hawk.YoLo')" paket-files/haf/YoLo/YoLo.fs}
+  sh %{ruby -pi.bak -e "gsub(/namespace Logary.Facade/, 'namespace Logibit.Hawk.Logging')" paket-files/logary/logary/src/Logary.Facade/Facade.fs}
 end
 
 desc 'create assembly infos'
@@ -42,16 +40,18 @@ build :quick_compile do |b|
 end
 
 task :paket_bootstrap do
-system 'tools/paket.bootstrapper.exe', clr_command: true unless   File.exists? 'tools/paket.exe'
+  system 'tools/paket.bootstrapper.exe', clr_command: true unless File.exists? 'tools/paket.exe'
 end
 
-desc 'restore all nugets as per the packages.config files'
-task :restore => :paket_bootstrap do
+task :paket_restore do
   system 'tools/paket.exe', 'restore', clr_command: true
 end
 
+desc 'restore all nugets as per the packages.config files'
+task :paket => [:paket_bootstrap, :paket_restore, :paket_replace]
+
 desc 'Perform full build'
-build :compile => [:versioning, :restore, :assembly_info] do |b|
+build :compile => [:versioning, :assembly_info] do |b|
   b.prop 'Configuration', Configuration
   b.sln     = 'src/Logibit.Hawk.sln'
 end
@@ -89,7 +89,7 @@ end
 
 task :tests => :'tests:unit'
 
-task :default => [ :prepare, :versioning, :compile, :tests, :create_nugets ]
+task :default => [ :paket, :versioning, :compile, :tests, :create_nugets ]
 
 task :ensure_nuget_key do
   raise 'missing env NUGET_KEY value' unless ENV['NUGET_KEY']

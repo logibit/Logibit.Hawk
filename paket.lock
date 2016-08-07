@@ -1,7 +1,7 @@
 NUGET
   remote: https://www.nuget.org/api/v2
   specs:
-    FsCheck (2.2.5)
+    FsCheck (2.6)
       FSharp.Core (>= 3.1.2.5)
     FSharp.Core (3.1.2.5)
     Fuchu (1.0.3)
@@ -10,15 +10,18 @@ NUGET
       FsCheck (>= 2.2.4)
       FSharp.Core (>= 3.1.2.5)
       Fuchu (>= 1.0.3)
-    NodaTime (1.3.1)
-    NuGet.CommandLine (3.3)
-    Suave (1.1.2)
+    NodaTime (1.3.2)
+    NuGet.CommandLine (3.4.3)
+    Suave (1.1.3)
       FSharp.Core (>= 3.1.2.5)
-    Suave.Testing (1.1.2)
+    Suave.Testing (1.1.3)
       FSharp.Core (>= 3.1.2.5)
       Fuchu (>= 1.0.2)
-      Suave (>= 1.1.2)
+      Suave (>= 1.1.3)
 GITHUB
   remote: haf/YoLo
   specs:
-    YoLo.fs (12b17ed0840b1a915ef7efa4db341d9a6477117a)
+    YoLo.fs (f122eebb2ab82e06ac31ce51f3b4632fb26fd130)
+  remote: logary/logary
+  specs:
+    src/Logary.Facade/Facade.fs (50abd2450d629491120418718dbd6f74408872a7)
