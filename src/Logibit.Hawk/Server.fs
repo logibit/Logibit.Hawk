@@ -183,12 +183,12 @@ module internal Impl =
       Choice2Of2 (StaleTimestamp (givenTs, now, localOffset))
 
   let logFailure (logger : Logger) timestamp (err : AuthError) =
-    { message   = "authenticate failure"
-      level     = Info
-      path      = "Logibit.Hawk.Server.authenticate"
-      data      = [ "error", box err ] |> Map.ofList
-      timestamp = timestamp }
-    |> logger.Log
+    logger.info (fun level ->
+    { value     = Event "Authenticate Failure"
+      level     = level
+      name      = "Logibit.Hawk.Server.authenticate".Split('.')
+      fields      = [ "error", box err ] |> Map.ofList
+      timestamp = Instant.toEpochNanos timestamp })
 
   let mapResult (a, (b, c)) = a, b, c
 
@@ -208,7 +208,8 @@ let parseHeader (header : string) =
       match part |> Regex.``match`` "(?<k>[a-z]+)=\"(?<v>.+)\"" with
       | Some groups ->
         memo |> Map.add groups.["k"].Value groups.["v"].Value
-      | None -> memo
+      | None ->
+        memo
       ) Map.empty)
 
 let authenticate (s : Settings<'a>)
@@ -217,35 +218,34 @@ let authenticate (s : Settings<'a>)
   let now = s.clock.Now
   let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
 
-  (fun _ -> 
-    { message = "authenticate start"
-      level   = Debug
-      path    = "Logibit.Hawk.Server.authenticate"
-      data    =
-        [ "now_with_offset", box nowWithOffset
+  s.logger.debug (fun level ->
+    { value   = Event "Authenticate Start"
+      level   = level
+      name    = "Logibit.Hawk.Server.authenticate".Split('.')
+      fields  =
+        [ "nowWithOffset", box nowWithOffset
           "req", box (
             [ "header", box req.authorisation
-              "content_type", box req.contentType
+              "contentType", box req.contentType
               "host", box req.host
               "method", box req.``method``
-              "payload_length", box (req.payload |> Option.map (fun bs -> bs.Length))
+              "payloadLength", box (req.payload |> Option.map (fun bs -> bs.Length))
               "port", box req.port
               "uri", box req.uri
             ] |> Map.ofList)
           "s", box (
-            [ "allowed_clock_skew", box s.allowedClockSkew
-              "local_clock_offset", box s.localClockOffset
+            [ "allowedClockSkew", box s.allowedClockSkew
+              "localClockOffset", box s.localClockOffset
             ] |> Map.ofList)
         ] |> Map.ofList
-      timestamp = now })
-  |> Logger.debug s.logger
+      timestamp = Instant.toEpochNanos now })
 
   let reqAttr m = Parse.reqAttr MissingAttribute Impl.toAuthErr m
   let optAttr m = Parse.optAttr m
 
   parseHeader req.authorisation // parse header, unknown header values so far
   >>= fun header ->
-      Writer.lift (HawkAttributes.mk req.``method`` req.uri)
+      Writer.lift (HawkAttributes.create req.``method`` req.uri)
       >>~ reqAttr header "id" (Parse.id, HawkAttributes.id_)
       >>= reqAttr header "ts" (Parse.unixSecInstant, HawkAttributes.ts_)
       >>= reqAttr header "nonce" (Parse.id, HawkAttributes.nonce_)

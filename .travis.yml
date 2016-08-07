@@ -1,0 +1,23 @@
+---
+language: csharp
+
+mono:
+  - 4.2.3
+  - 4.4.1
+  - weekly
+  - latest
+
+before_install:
+   - rvm install 2.2.3
+
+install:
+  - gem install bundler
+  - bundle
+
+script:
+  - bundle exec rake
+
+matrix:
+  allow_failures:
+   - mono: latest
+   - mono: weekly

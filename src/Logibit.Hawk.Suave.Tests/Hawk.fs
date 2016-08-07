@@ -5,6 +5,7 @@ open System.Net
 open System.Net.Http
 open System.Net.Http.Headers
 open Fuchu
+open NodaTime
 open Suave
 open Suave.Web
 open Suave.Filters
@@ -16,8 +17,6 @@ type HM = HttpMethod
 open Logibit.Hawk
 open Logibit.Hawk.Server
 open Logibit.Hawk.Client
-open NodaTime
-open Fuchu
 open Suave.Http
 
 module Helpers =
@@ -84,7 +83,7 @@ let serverClientAuthentication =
         )
 
       yield testCase "signing GET request" <| fun _ ->
-        let opts = ClientOptions.mkSimple (credsInner "1")
+        let opts = ClientOptions.createSimple (credsInner "1")
         let request = setAuthHeader HM.GET opts
 
         runWithDefaultConfig hawkAuthenticate |> req HttpMethod.GET None request (fun resp ->
@@ -97,7 +96,7 @@ let serverClientAuthentication =
 
       yield testCase "signing POST request" <| fun _ ->
         let opts =
-          { ClientOptions.mkSimple (credsInner "1")
+          { ClientOptions.createSimple (credsInner "1")
               with payload = Some [| 0uy; 1uy |] }
 
         let request =
@@ -116,7 +115,7 @@ let serverClientAuthentication =
         Hawk.authenticate proxySettings Hawk.bindHeaderReq unauthed authed
 
       yield testCase "signing POST request" <| fun _ ->
-        let opts = { ClientOptions.mkSimple (credsInner "1") with payload = Some [| 0uy; 1uy |] }
+        let opts = { ClientOptions.createSimple (credsInner "1") with payload = Some [| 0uy; 1uy |] }
 
         let request =
           setAuthHeader HM.POST opts
@@ -170,7 +169,7 @@ let bewitServerClientAuth =
             localClockOffset = Duration.Zero
             clock            = clock
             ext              = None
-            logger           = Logging.NoopLogger }
+            logger           = Logging.Targets.create Logging.Warn }
 
         let requestf =
           setBewitQuery opts
@@ -193,7 +192,7 @@ let bewitServerClientAuth =
             localClockOffset = Duration.Zero
             clock            = clock
             ext              = None
-            logger           = Logging.NoopLogger }
+            logger           = Logging.Targets.create Logging.Warn }
 
         let requestf =
           setBewitQuery opts
