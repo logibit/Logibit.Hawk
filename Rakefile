@@ -51,7 +51,7 @@ desc 'restore all nugets as per the packages.config files'
 task :paket => [:paket_bootstrap, :paket_restore, :paket_replace]
 
 desc 'Perform full build'
-build :compile => [:versioning, :assembly_info] do |b|
+build :compile => [:paket, :versioning, :assembly_info] do |b|
   b.prop 'Configuration', Configuration
   b.sln     = 'src/Logibit.Hawk.sln'
 end
@@ -59,7 +59,7 @@ end
 directory 'build/pkg'
 
 desc 'package nugets - finds all projects and package them'
-nugets_pack :create_nugets => ['build/pkg', :versioning, :compile] do |p|
+nugets_pack :create_nugets => ['build/pkg', :compile] do |p|
   p.configuration = Configuration
   p.files   = FileList['src/**/*.{csproj,fsproj,nuspec}'].
     exclude(/[tT]ests/)
@@ -87,9 +87,9 @@ namespace :tests do
   task :unit => [:hawk, :suave]
 end
 
-task :tests => :'tests:unit'
+task :tests => [:compile, :'tests:unit']
 
-task :default => [ :paket, :versioning, :compile, :tests, :create_nugets ]
+task :default => [ :tests, :create_nugets ]
 
 task :ensure_nuget_key do
   raise 'missing env NUGET_KEY value' unless ENV['NUGET_KEY']
@@ -97,6 +97,6 @@ end
 
 Albacore::Tasks::Release.new :release,
                              pkg_dir: 'build/pkg',
-                             depend_on: [:create_nugets, :ensure_nuget_key],
+                             depend_on: [:tests, :create_nugets, :ensure_nuget_key],
                              nuget_exe: 'packages/NuGet.CommandLine/tools/NuGet.exe',
                              api_key: ENV['NUGET_KEY']
