@@ -77,11 +77,11 @@ end
 
 namespace :tests do
   task :hawk do
-    system "src/Logibit.Hawk.tests/bin/#{Configuration}/Logibit.Hawk.tests.exe", clr_command: true
+    system "src/Logibit.Hawk.tests/bin/#{Configuration}/Logibit.Hawk.tests.exe", %w|--sequenced|, clr_command: true
   end
 
   task :suave do
-    system "src/Logibit.Hawk.suave.tests/bin/#{Configuration}/Logibit.Hawk.suave.tests.exe", clr_command: true
+    system "src/Logibit.Hawk.suave.tests/bin/#{Configuration}/Logibit.Hawk.suave.tests.exe", %w|--sequenced|, clr_command: true
   end
 
   task :unit => [:hawk, :suave]
