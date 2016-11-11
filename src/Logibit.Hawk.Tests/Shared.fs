@@ -1,6 +1,6 @@
 ﻿module Logibit.Hawk.Tests.Shared
 
-open Fuchu
+open Expecto
 
 open Logibit.Hawk
 open Logibit.Hawk.Types

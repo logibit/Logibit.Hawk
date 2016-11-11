@@ -3,7 +3,7 @@
 open System
 open System.Net
 open System.Diagnostics
-open Fuchu
+open Expecto
 open NodaTime
 open Logibit.Hawk
 open Logibit.Hawk.Bewit
@@ -47,9 +47,9 @@ let ``bewit generation`` =
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
             logger                   = Logging.Targets.create Logging.Warn }
-      Assert.Equal("bewit should generate correctly",
-                   "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6",
-                   b)
+      Expect.equal b
+                   "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6"
+                   "bewit should generate correctly"
 
     testCase "returns a valid bewit value (explicit port)" <| fun _ ->
       let b =
@@ -61,9 +61,9 @@ let ``bewit generation`` =
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
             logger                   = Logging.Targets.create Logging.Warn }
-      Assert.Equal("bewit should generate correctly",
-                   "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6",
-                   b)
+      Expect.equal b
+                   "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6"
+                   "bewit should generate correctly"
 
     testCase "returns a valid bewit value (None ext)" <| fun _ ->
       let b =
@@ -75,9 +75,9 @@ let ``bewit generation`` =
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = None
             logger                   = Logging.Targets.create Logging.Warn }
-      Assert.Equal("bewit should generate correctly",
-                   "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c",
-                   b)
+      Expect.equal b
+                   "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c"
+                   "bewit should generate correctly"
   ]
 
 [<Tests>]
@@ -85,8 +85,9 @@ let ``encoding tests`` =
   testList "encoding tests" [
     testCase "it should encode and decode a uri to match the original" <| fun _ ->
       let testUri = "http://example.com:80/resource/4?a=1&b=2"
-      Assert.Equal("return value", testUri,
-                   (ModifiedBase64Url.encode >> ModifiedBase64Url.decode) testUri)
+      Expect.equal testUri
+                   ((ModifiedBase64Url.encode >> ModifiedBase64Url.decode) testUri)
+                   "return value"
 
     testCase "System.Uri" <| fun _ ->
       // https://tools.ietf.org/html/rfc3986 "2.2.  Reserved Characters"
@@ -99,18 +100,20 @@ let ``encoding tests`` =
         ()
 
       for value in delims do
-        Assert.NotEqual("Should encode, changing its value",
-                        Encoding.encodeURIComponent value, value)
+        Expect.notEqual value
+                        (Encoding.encodeURIComponent value)
+                        "Should encode, changing its value"
 
       let blob = String.Join("", delims)
       let encoded = Encoding.encodeURIComponent blob
       let subject = Uri (sprintf "https://haf.se/?q=%s" encoded)
 
-      Assert.Equal("Path and query should read in an encoded manner",
-                   "/?q="+encoded, subject.PathAndQuery)
+      Expect.equal subject.PathAndQuery
+                   ("/?q="+encoded)
+                   "Path and query should read in an encoded manner"
 
       // This fails for the :, [, ] characters
-      //Assert.StringContains("Should contain encoded value when doing ToString",
+      //Expect.stringContains("Should contain encoded value when doing ToString",
       //                      encoded, subject.ToString())
   ]
 
@@ -126,10 +129,10 @@ let ``parsing bewit parts`` =
                         logger                   = Logging.Targets.create Logging.Warn }
     match Bewit.parse b with
     | Choice1Of2 map ->
-      Assert.Equal("has id", credsInner.id, map |> Map.find "id")
-      Assert.NotEqual("has exp", "", map |> Map.find "exp")
-      Assert.NotEqual("has mac", "", map |> Map.find "mac")
-      Assert.Equal("has not got ext", "", map |> Map.find "ext")
+      Expect.equal (map |> Map.find "id") (credsInner.id) "has id"
+      Expect.notEqual (map |> Map.find "exp") "" "has exp"
+      Expect.notEqual (map |> Map.find "mac") "" "has mac"
+      Expect.equal (map |> Map.find "ext") ("") "has not got ext"
     | err ->
       Tests.failtestf "should have been able to parse the four token components, got %A" err
 
@@ -170,8 +173,8 @@ let authentication =
       Server.authenticateBewit settings (bewitRequest id)
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("ext value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (attrs.ext) (Some "some-app-data") "ext value"
+        Expect.equal (user) ("steve") "return value"
 
     testCase "it should generate a bewit calcMaccesfully authenticate it (no ext)" <| fun _ ->
       Server.authenticateBewit
@@ -179,7 +182,7 @@ let authentication =
         (bewitRequest (fun x -> { x with BewitOptions.ext = None }))
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "should successfully authenticate a request (last param)" <| fun _ ->
       uriBuilder.Query <- String.Join("&",
@@ -192,8 +195,8 @@ let authentication =
       |> Server.authenticateBewit settings
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("ext value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (attrs.ext) (Some "some-app-data") "ext value"
+        Expect.equal (user) ("steve") "return value"
 
     testCase "should successfully authenticate a request (first param)" <| fun _ ->
       uriBuilder.Query <- String.Join("&",
@@ -206,8 +209,8 @@ let authentication =
       |> Server.authenticateBewit settings
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (attrs.ext) (Some "some-app-data") "return value"
+        Expect.equal (user) ("steve") "return value"
 
     testCase "should successfully authenticate a request (only param)" <| fun _ ->
       uriBuilder.Query <-
@@ -219,8 +222,8 @@ let authentication =
       |> Server.authenticateBewit settings
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", Some "some-app-data", attrs.ext)
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (attrs.ext) (Some "some-app-data") "return value"
+        Expect.equal (user) ("steve") "return value"
 
     testCase "should fail on method other than GET" <| fun _ ->
       { ``method`` = POST

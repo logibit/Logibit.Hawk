@@ -1,6 +1,6 @@
 ﻿module Logibit.Hawk.Tests.ClientAuthenticate
 
-open Fuchu
+open Expecto
 
 open Logibit.Hawk
 open Logibit.Hawk.Tests.Shared

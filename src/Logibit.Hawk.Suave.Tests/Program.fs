@@ -1,7 +1,7 @@
 ﻿module Logibit.Hawk.Suave.Tests.Program
 
-open Fuchu
+open Expecto
 
 [<EntryPoint>]
 let main argv = 
-  defaultMainThisAssembly argv
+  runTestsInAssembly defaultConfig argv

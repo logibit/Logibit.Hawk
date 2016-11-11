@@ -1,14 +1,14 @@
 source https://www.nuget.org/api/v2
+framework net461
 
 nuget FsCheck
-nuget FSharp.Core ~> 3.1.2.5
-nuget Fuchu
-nuget Fuchu
-nuget Fuchu.FsCheck
+nuget FSharp.Core
+nuget Expecto
+nuget Expecto.FsCheck
 nuget NodaTime
 nuget NuGet.CommandLine
-nuget Suave
-nuget Suave.Testing
+nuget Suave prerelease
+nuget Suave.Testing prerelease
 
 github haf/YoLo YoLo.fs
 github logary/logary src/Logary.Facade/Facade.fs

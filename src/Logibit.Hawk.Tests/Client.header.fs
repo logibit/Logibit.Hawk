@@ -1,6 +1,6 @@
 ﻿module Logibit.Hawk.Tests.ClientHeader
 
-open Fuchu
+open Expecto
 
 open NodaTime
 
@@ -31,12 +31,12 @@ let client =
         validSHA1Opts
         |> Client.headerStr "http://example.net/somewhere/over/the/rainbow" POST
         |> ensureValue
-      Assert.Equal("HMACs should eq",
-                   "qbf1ZPG/r/e06F4ht+T77LXi5vw=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""bsvY3IfUllw6V5rvk4tStEvpBhE="", ext=""Bazinga!"", mac=""qbf1ZPG/r/e06F4ht+T77LXi5vw=""",
-                   res.header)
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "qbf1ZPG/r/e06F4ht+T77LXi5vw="
+                  "HMACs should eq"
+      Expect.equal res.header
+                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""bsvY3IfUllw6V5rvk4tStEvpBhE="", ext=""Bazinga!"", mac=""qbf1ZPG/r/e06F4ht+T77LXi5vw="""
+                   "header should eq"
 
     testCase "returns a valid authorization header (sha256, content type)" <| fun _ ->
       let res =
@@ -53,14 +53,15 @@ let client =
         |> Client.headerStr "https://example.net/somewhere/over/the/rainbow" POST
         |> ensureValue
 
-      Assert.Equal("HMACs should eq",
-                   "q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8=""",
-                   res.header)
-      Assert.Equal("header parameter should eq", @"id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8=""", res.parameter)
-
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8="
+                   "HMACs should eq"
+      Expect.equal res.header
+                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8="""
+                    "header should eq"
+      Expect.equal res.parameter
+                   @"id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", ext=""Bazinga!"", mac=""q1CwFoSHzPZSkbIvl0oYlD+91rBUEvFk763nMjMndj8="""
+                   "header parameter should eq"
     testCase "returns a valid authorization header (no ext)" <| fun _ ->
       let res =
         { credentials        = credentials SHA256
@@ -75,12 +76,12 @@ let client =
           dlg          = None }
         |> Client.headerStr "https://example.net/somewhere/over/the/rainbow" POST
         |> ensureValue
-      Assert.Equal("HMACs should eq",
-                   "HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", mac=""HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs=""",
-                   res.header)
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs="
+                   "HMACs should eq"
+      Expect.equal res.header
+                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", mac=""HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs="""
+                   "header should eq"
 
     testCase "returns a valid authorization header (empty payload string)" <| fun _ ->
       let res =
@@ -96,9 +97,9 @@ let client =
           dlg                = None }
         |> Client.headerStr "https://example.net/somewhere/over/the/rainbow" POST
         |> ensureValue
-      Assert.Equal("header should eq",
-                   "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Ygvqdz\", hash=\"q/t+NNAkQZNlq/aAD6PlexImwQTxwgT2MahfTa9XRLA=\", mac=\"U5k16YEzn3UnBHKeBzsDXn067Gu3R4YaY6xOt9PYRZM=\"",
-                   res.header)
+      Expect.equal res.header
+                   "Hawk id=\"123456\", ts=\"1353809207\", nonce=\"Ygvqdz\", hash=\"q/t+NNAkQZNlq/aAD6PlexImwQTxwgT2MahfTa9XRLA=\", mac=\"U5k16YEzn3UnBHKeBzsDXn067Gu3R4YaY6xOt9PYRZM=\""
+                    "header should eq"
 
     testCase "returns a valid authorization header (pre hashed payload)" <| fun _ ->
       let opts =
@@ -117,22 +118,23 @@ let client =
         Client.headerStr "https://example.net/somewhere/over/the/rainbow" POST
                        { opts with hash = Some hash }
         |> ensureValue
-      Assert.Equal("HMACs should eq",
-                   "HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", mac=""HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs=""",
-                   res.header)
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs="
+                    "HMACs should eq"
+
+      Expect.equal res.header
+                   @"Hawk id=""123456"", ts=""1353809207"", nonce=""Ygvqdz"", hash=""2QfCt3GuY9HQnHWyWD3wX68ZOKbynqlfYmuO2ZBRqtY="", mac=""HTgtd0jPI6E4izx8e4OHdO36q00xFCU0FolNq3RiCYs="""
+                    "header should eq"
 
     testCase "error on invalid uri" <| fun _ ->
       let error =
         Client.headerStr "htssssssLALALLALLALALALAver/the/rainbow" POST validSHA1Opts
         |> ensureErr
-      Assert.Equal("should have invalid uri", InvalidUri, error)
+      Expect.equal error InvalidUri "should have invalid uri"
 
     testCase "error on invalid - empty - uri" <| fun _ ->
       let error = Client.headerStr "" POST validSHA1Opts |> ensureErr
-      Assert.Equal("should have invalid uri", InvalidUri, error)
+      Expect.equal error InvalidUri "should have invalid uri"
     ]
 
 [<Tests>]
@@ -156,12 +158,13 @@ let facedInTheWild =
       let res =
         Client.headerStr "http://localhost:8080/api/accounts/mark_account_verified" PUT opts
         |> ensureValue
-      Assert.Equal("mac should eq",
-                   "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""principals-f5cd484b3cbf455da0405a1d34a33580"", ts=""1420622994"", nonce=""MEyb64"", hash=""o+0u+l+7jf/XB9hpLVHAv4uBvXOg2+Ued0/f+2RJxwc="", mac=""2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E=""",
-                   res.header)
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E="
+                   "mac should eq"
+                   
+      Expect.equal res.header
+                   @"Hawk id=""principals-f5cd484b3cbf455da0405a1d34a33580"", ts=""1420622994"", nonce=""MEyb64"", hash=""o+0u+l+7jf/XB9hpLVHAv4uBvXOg2+Ued0/f+2RJxwc="", mac=""2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E="""
+                   "header should eq"
 
     testCase "invalid payload hash" <| fun _ ->
       let opts =
@@ -181,13 +184,13 @@ let facedInTheWild =
       let res =
         Client.headerStr "http://localhost:8080/api/receipts/save_details" POST opts
         |> ensureValue
-      Assert.Equal("normalised strings should eq",
-                   "hawk.1.header\n1422014454\nHtKift\nPOST\n/api/receipts/save_details\nlocalhost\n8080\nSRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI=\n\n",
-                   Crypto.genNormStr "header" res.calcData)
-      Assert.Equal("mac should eq",
-                   "CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ=",
-                   Crypto.calcMac "header" res.calcData)
-      Assert.Equal("header should eq",
-                   @"Hawk id=""principals-3e38ab647ab444558f19944d4011400b"", ts=""1422014454"", nonce=""HtKift"", hash=""SRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI="", mac=""CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ=""",
-                   res.header)
+      Expect.equal (Crypto.genNormStr "header" res.calcData)
+                   "hawk.1.header\n1422014454\nHtKift\nPOST\n/api/receipts/save_details\nlocalhost\n8080\nSRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI=\n\n"
+                    "normalised strings should eq"
+      Expect.equal (Crypto.calcMac "header" res.calcData)
+                   "CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ="
+                    "mac should eq"
+      Expect.equal res.header
+                   @"Hawk id=""principals-3e38ab647ab444558f19944d4011400b"", ts=""1422014454"", nonce=""HtKift"", hash=""SRNdUbnjvHd/UVk2Strp7EA3hLNQMjOOh2FPH4MSlBI="", mac=""CPqEIj+r5X8u3AZfQaqbgpvh5b13aiooCWbc6vQHISQ="""
+                   "header should eq"
     ]

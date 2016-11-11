@@ -1,5 +1,5 @@
 FSharp.Core
 NodaTime
 FsCheck
-Fuchu
-Fuchu.FsCheck
+Expecto
+Expecto.FsCheck

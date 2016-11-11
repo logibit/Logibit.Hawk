@@ -4,7 +4,7 @@ open System
 open System.Net
 open System.Net.Http
 open System.Net.Http.Headers
-open Fuchu
+open Expecto
 open NodaTime
 open Suave
 open Suave.Web
@@ -22,7 +22,7 @@ open Suave.Http
 module Helpers =
   let runWithDefaultConfig =
     runWith { defaultConfig with
-                bindings = [ HttpBinding.mkSimple HTTP "127.0.0.1" 8999 ] }
+                bindings = [ HttpBinding.createSimple HTTP "127.0.0.1" 8999 ] }
 
   let credsInner id =
     { id        = id
@@ -77,9 +77,9 @@ let serverClientAuthentication =
       yield testCase "not signing" <| fun _ ->
         runWithDefaultConfig hawkAuthenticate
         |> req HttpMethod.GET None id (fun resp ->
-          Assert.Equal("unauthorised", HttpStatusCode.Unauthorized, resp.StatusCode)
+          Expect.equal (resp.StatusCode) (HttpStatusCode.Unauthorized) "unauthorised"
           let resStr = resp.Content.ReadAsStringAsync().Result
-          Assert.StringContains("body", "Missing header 'authorization'", resStr)
+          Expect.stringContains resStr "Missing header 'authorization'" "body"
         )
 
       yield testCase "signing GET request" <| fun _ ->
@@ -87,11 +87,12 @@ let serverClientAuthentication =
         let request = setAuthHeader HM.GET opts
 
         runWithDefaultConfig hawkAuthenticate |> req HttpMethod.GET None request (fun resp ->
-          Assert.Equal("should contain 'Vary: Authorization,Cookie'",
-                      ["Authorization"; "Cookie"],
-                      resp.Headers.Vary |> List.ofSeq)
-          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+          Expect.equal (resp.Headers.Vary |> List.ofSeq)
+                       ["Authorization"; "Cookie"]
+                       "Should contain 'Vary: Authorization,Cookie'"
+          let body = resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful auth"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
 
       yield testCase "signing POST request" <| fun _ ->
@@ -105,8 +106,9 @@ let serverClientAuthentication =
 
         runWithDefaultConfig hawkAuthenticate
         |> req HttpMethod.POST None request (fun resp ->
-          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+          let body = resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful authentication"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
     ]
 
@@ -137,8 +139,9 @@ let serverClientAuthentication =
         runWithDefaultConfig hawkAuthenticate
         // sends to localhost, which is a mismatch, but carries http headers
         |> req HttpMethod.POST None request (fun resp ->
-          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+          let body = resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful auth"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
       ]
     ]
@@ -176,8 +179,9 @@ let bewitServerClientAuth =
 
         runWithDefaultConfig hawkBewitAuth
         |> req HttpMethod.GET None requestf (fun resp ->
-          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+          let body = resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful authentication"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
     ]
 
@@ -211,8 +215,9 @@ let bewitServerClientAuth =
 
         runWithDefaultConfig hawkBewitProxyAuth
         |> req HttpMethod.GET None requestf (fun resp ->
-          Assert.StringContains("successful auth", "authenticated user", resp.Content.ReadAsStringAsync().Result)
-          Assert.Equal("OK", HttpStatusCode.OK, resp.StatusCode)
+          let body =  resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful auth"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
 
     ]

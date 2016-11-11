@@ -2,7 +2,7 @@
 
 open System
 open System.Text
-open Fuchu
+open Expecto
 open NodaTime
 open Logibit.Hawk
 open Logibit.Hawk.Types
@@ -19,7 +19,7 @@ let utilTests =
       | Choice1Of2 inst ->
         let dto =
           DateTimeOffset(2014, 05, 06, 4, 22, 56, TimeSpan.FromHours(2.))
-        Assert.Equal("should eq", Instant.FromDateTimeOffset(dto), inst)
+        Expect.equal (inst) (Instant.FromDateTimeOffset(dto)) "should eq"
       | Choice2Of2 err ->
         Tests.failtestf "couldn't parse %s into Instant" sample
     ]
@@ -32,12 +32,12 @@ let authorizationHeader =
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazinga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
       let values = Server.parseHeader sample |> ensureValue
-      Assert.Equal("should have id", "123456", values.["id"])
-      Assert.Equal("should have ts", "1353809207", values.["ts"])
-      Assert.Equal("should have nonce", "Ygvqdz", values.["nonce"])
-      Assert.Equal("should have hash", "bsvY3IfUllw6V5rvk4tStEvpBhE=", values.["hash"])
-      Assert.Equal("should have ext", "Bazinga!", values.["ext"])
-      Assert.Equal("should have mac", "qbf1ZPG/r/e06F4ht+T77LXi5vw=", values.["mac"])
+      Expect.equal (values.["id"]) ("123456") "should have id"
+      Expect.equal (values.["ts"]) ("1353809207") "should have ts"
+      Expect.equal (values.["nonce"]) ("Ygvqdz") "should have nonce"
+      Expect.equal (values.["hash"]) ("bsvY3IfUllw6V5rvk4tStEvpBhE=") "should have hash"
+      Expect.equal (values.["ext"]) ("Bazinga!") "should have ext"
+      Expect.equal (values.["mac"]) ("qbf1ZPG/r/e06F4ht+T77LXi5vw=") "should have mac"
 
     testCase "with separator inside strings" <| fun _ ->
       Tests.skiptestf "TODO: implement proper parser"
@@ -45,12 +45,12 @@ let authorizationHeader =
                    ", hash=\"bsvY3IfUllw6V5rvk4tStEvpBhE=\", ext=\"Bazi,nga!\"" +
                    ", mac=\"qbf1ZPG/r/e06F4ht+T77LXi5vw=\""
       let values = Server.parseHeader sample |> ensureValue
-      Assert.Equal("should have id", "123456", values.["id"])
-      Assert.Equal("should have ts", "1353809207", values.["ts"])
-      Assert.Equal("should have nonce", "Yg, vqdz", values.["nonce"])
-      Assert.Equal("should have hash", "bsvY3IfUllw6V5rvk4tStEvpBhE=", values.["hash"])
-      Assert.Equal("should have ext", "Bazi,nga!", values.["ext"])
-      Assert.Equal("should have mac", "qbf1ZPG/r/e06F4ht+T77LXi5vw=", values.["mac"])
+      Expect.equal (values.["id"]) ("123456") "should have id"
+      Expect.equal (values.["ts"]) ("1353809207") "should have ts"
+      Expect.equal ("Yg, vqdz") values.["nonce"] "should have nonce"
+      Expect.equal (values.["hash"]) ("bsvY3IfUllw6V5rvk4tStEvpBhE=") "should have hash"
+      Expect.equal values.["ext"] "Bazi,nga!" "should have ext"
+      Expect.equal (values.["mac"]) ("qbf1ZPG/r/e06F4ht+T77LXi5vw=") "should have mac"
     ]
 
 [<Tests>]
@@ -93,7 +93,7 @@ let server =
       |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "passes auth valid Client.header value" <| fun _ ->
       // same as:
@@ -123,7 +123,7 @@ let server =
       |> authenticate settings
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "parses a valid authentication header (sha256)" <| fun _ ->
       let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
@@ -138,7 +138,7 @@ let server =
       |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "parses a valid authentication header (host override)" <| fun _ ->
       let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
@@ -153,7 +153,7 @@ let server =
       |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "parses a valid authentication header (host port override)" <| fun _ ->
       let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
@@ -168,7 +168,7 @@ let server =
       |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "parses a valid authentication header (POST with payload-hash, payload for later check)" <| fun _ ->
       let header = "Hawk id=\"123456\", ts=\"1357926341\", nonce=\"1AwuJD\", " +
@@ -185,7 +185,7 @@ let server =
       |> authenticate { settings with localClockOffset = ts 1357926341L - clock.Now }
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
 
     testCase "errors on missing hash" <| fun _ ->
       let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
@@ -201,7 +201,7 @@ let server =
       |> ensureErr
       |> function
       | MissingAttribute a ->
-        Assert.Equal("hash attr", "hash", a)
+        Expect.equal (a) ("hash") "hash attr"
       | err ->
         Tests.failtestf "expected MissingAttribute(hash) but got '%A'" err
 
@@ -293,7 +293,7 @@ let server =
           |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
           |> ensureErr
           |> function
-          | MissingAttribute actualAttr -> Assert.Equal("attr", attr, actualAttr)
+          | MissingAttribute actualAttr -> Expect.equal (actualAttr) (attr) "attr"
           | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
           )
 
@@ -323,5 +323,5 @@ let server =
       |> authenticate settings
       |> ensureValue
       |> fun (attrs, _, user) ->
-        Assert.Equal("return value", "steve", user)
+        Expect.equal (user) ("steve") "return value"
     ]
