@@ -104,7 +104,9 @@ let parse (bewit : string) =
     |> Choice2Of2
 
 let parseBase64  =
-  Encoding.ModifiedBase64Url.decode >> parse
+  Encoding.ModifiedBase64Url.decode
+  >> Choice.mapSnd DecodeError
+  >> Choice.bind parse
 
 module internal Impl =
 
@@ -150,9 +152,8 @@ module internal Impl =
     req.uri.Query.Split '&'
     |> Array.tryFind (fun x -> x.Contains("bewit="))
     |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
-    |> Option.map ModifiedBase64Url.decode
-    |> Choice.ofOption
-        (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
+    |> Choice.ofOption (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
+    |> Choice.bind (ModifiedBase64Url.decode >> Choice.mapSnd DecodeError)
 
   let logFailure (logger : Logger) timestamp (err : BewitError) =
     { value     = Event "Authenticate Failure"

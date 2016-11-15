@@ -11,3 +11,4 @@ AssemblyVersionInfo.vb
 packages/
 build/
 paket-files/
+.vscode/

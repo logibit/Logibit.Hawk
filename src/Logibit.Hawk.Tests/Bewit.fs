@@ -85,9 +85,9 @@ let ``encoding tests`` =
   testList "encoding tests" [
     testCase "it should encode and decode a uri to match the original" <| fun _ ->
       let testUri = "http://example.com:80/resource/4?a=1&b=2"
-      Expect.equal testUri
-                   ((ModifiedBase64Url.encode >> ModifiedBase64Url.decode) testUri)
-                   "return value"
+      let encoded = ModifiedBase64Url.encode testUri
+      let decoded = ModifiedBase64Url.decode encoded
+      Expect.equal (Choice1Of2 testUri) decoded "Decoded URI is correct."
 
     testCase "System.Uri" <| fun _ ->
       // https://tools.ietf.org/html/rfc3986 "2.2.  Reserved Characters"
@@ -259,6 +259,19 @@ let authentication =
       |> function
       | DecodeError _ -> ()
       | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+
+    testCase "should fail on bewit's base64 data being faulty" <| fun _ ->
+      uriBuilder.Query <-
+        "bewit=XDQ1NTIF0YäQ"
+      { ``method`` = GET
+        uri        = uriBuilder.Uri
+        host       = None
+        port       = None }
+      |> Server.authenticateBewit settings
+      |> ensureErr
+      |> function
+      | DecodeError _ -> ()
+      | err -> Tests.failtestf "wrong error, expected BadArguments for bas base64, got '%A'" err
 
     testCase "should fail on empty bewit attribute" <| fun _ ->
       uriBuilder.Query <- "bewit=YVxcY1xk"

@@ -34,8 +34,12 @@ module ModifiedBase64Url =
     let base64Url = base64Text.Replace('+', '-').Replace('/', '_')
     base64Url.Replace("=", String.Empty)
 
-  let decode (modifiedBase64Url : string) =
+  let decode (modifiedBase64Url : string) : Choice<string, string> =
     let base64Url = modifiedBase64Url.PadRight(modifiedBase64Url.Length + (4 - modifiedBase64Url.Length % 4) % 4, '=')
     let base64Text = base64Url.Replace('-', '+').Replace('_', '/')
-    let decodedBytes = Convert.FromBase64String(base64Text)
-    UTF8.toString decodedBytes
+    try
+      let decodedBytes = Convert.FromBase64String(base64Text)
+      Choice.create (UTF8.toString decodedBytes)
+    with
+    | :? FormatException as e ->
+      Choice.createSnd e.Message
