@@ -28,6 +28,25 @@ let crypto =
                    "hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\n\n"
                    "should return a valid normalized string"
 
+    testCase "valid normalized string (app + no dlg)" <| fun _ ->
+      let subject =
+        Crypto.genNormStr
+          "header"
+          { credentials = credentials SHA256
+            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
+            nonce       = "k3k4j5"
+            ``method``  = GET
+            resource    = "/resource/something"
+            host        = "example.com"
+            port        = 8080us
+            ext         = None
+            hash        = None
+            app         = Some "app"
+            dlg         = None }
+      Expect.equal subject
+                   "hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\n\napp\n\n"
+                   "should return a valid normalized string"
+
     testCase "valid normalized string (ext)" <| fun _ ->
       let subject =
         Crypto.genNormStr

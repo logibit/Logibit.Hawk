@@ -67,7 +67,7 @@ let genNormStr (``type`` : string) (opts : FullAuth) =
       | Some app ->
         yield sprintf "%s\n" app
         match opts.dlg with
-        | None -> ()
+        | None -> yield "\n"
         | Some dlg -> yield sprintf "%s\n" dlg
       ]
 
