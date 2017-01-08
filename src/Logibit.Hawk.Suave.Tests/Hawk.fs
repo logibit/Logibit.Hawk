@@ -151,6 +151,9 @@ open Logibit.Hawk.Bewit
 [<Tests>]
 let bewitServerClientAuth =
 
+  let logger =
+    Logging.Targets.create Logging.Warn [| "Logibit"; "Hawk"; "Tests" |]
+
   let clock =
     SystemClock.Instance
 
@@ -172,7 +175,7 @@ let bewitServerClientAuth =
             localClockOffset = Duration.Zero
             clock            = clock
             ext              = None
-            logger           = Logging.Targets.create Logging.Warn }
+            logger           = logger }
 
         let requestf =
           setBewitQuery opts
@@ -196,7 +199,7 @@ let bewitServerClientAuth =
             localClockOffset = Duration.Zero
             clock            = clock
             ext              = None
-            logger           = Logging.Targets.create Logging.Warn }
+            logger           = logger }
 
         let requestf =
           setBewitQuery opts

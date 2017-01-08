@@ -69,7 +69,7 @@ let server =
 
   let settings =
     { clock            = clock
-      logger           = Logging.Targets.create Logging.Warn
+      logger           = Logging.Targets.create Logging.Warn [| "Logibit"; "Hawk" |]
       allowedClockSkew = Duration.FromMilliseconds 8000L
       localClockOffset = Duration.Zero
       nonceValidator   = Settings.nonceValidatorNoop

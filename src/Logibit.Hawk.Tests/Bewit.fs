@@ -19,18 +19,21 @@ let clock =
 
 type DebugPrinter (name : string) =
   interface Logger with
-    member x.logSimple msg =
-      Debug.WriteLine (sprintf "%s: %A" name msg)
+    member x.name = [| name |]
     member x.log level msg =
       Debug.WriteLine (sprintf "%s: %A" name msg)
+      Async.result ()
+
     member x.logWithAck level msgFactory =
       Debug.WriteLine (sprintf "%s: %A" name (msgFactory level))
-      async.Return ()
+      Async.result ()
 
 let credsInner =
   { id        = "123456"
     key       = "2983d45yun89q"
     algorithm = SHA256 }
+
+let logger = Logging.Targets.create Warn [| "Logibit"; "Hawk"; "Tests" |]
 
 [<Tests>]
 let ``bewit generation`` =
@@ -46,7 +49,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
-            logger                   = Logging.Targets.create Logging.Warn }
+            logger                   = logger }
       Expect.equal b
                    "MTIzNDU2XDEzNTY0MjA3MDdca3NjeHdOUjJ0SnBQMVQxekRMTlBiQjVVaUtJVTl0T1NKWFRVZEc3WDloOD1ceGFuZHlhbmR6"
                    "bewit should generate correctly"
@@ -60,7 +63,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = Some "xandyandz"
-            logger                   = Logging.Targets.create Logging.Warn }
+            logger                   = logger }
       Expect.equal b
                    "MTIzNDU2XDEzNTY0MjA3MDdcaFpiSjNQMmNLRW80a3kwQzhqa1pBa1J5Q1p1ZWc0V1NOYnhWN3ZxM3hIVT1ceGFuZHlhbmR6"
                    "bewit should generate correctly"
@@ -74,7 +77,7 @@ let ``bewit generation`` =
             clock                    = clock
             localClockOffset         = ts 1356420407232L - clock.Now
             ext                      = None
-            logger                   = Logging.Targets.create Logging.Warn }
+            logger                   = logger }
       Expect.equal b
                    "MTIzNDU2XDEzNTY0MjA3MDdcSUdZbUxnSXFMckNlOEN4dktQczRKbFdJQStValdKSm91d2dBUmlWaENBZz1c"
                    "bewit should generate correctly"
@@ -126,7 +129,7 @@ let ``parsing bewit parts`` =
                         clock                    = clock
                         localClockOffset         = ts 1356420407232L - clock.Now
                         ext                      = None
-                        logger                   = Logging.Targets.create Logging.Warn }
+                        logger                   = logger }
     match Bewit.parse b with
     | Choice1Of2 map ->
       Expect.equal (map |> Map.find "id") (credsInner.id) "has id"
@@ -138,7 +141,7 @@ let ``parsing bewit parts`` =
 
 let settings =
   { Settings.clock   = clock
-    logger           = Targets.create Warn
+    logger           = logger
     allowedClockSkew = Duration.FromMilliseconds 300L
     localClockOffset = ts 1356420407232L - clock.Now
     nonceValidator   = Settings.nonceValidatorMem
@@ -157,7 +160,7 @@ let authentication =
       clock                    = clock
       localClockOffset         = ts 1356420407232L - clock.Now
       ext                      = Some "some-app-data"
-      logger                   = Targets.create Warn }
+      logger                   = logger }
 
   let bewitRequest fInspect =
     uriBuilder.Query <- uriParams

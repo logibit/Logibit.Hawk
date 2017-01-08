@@ -1,27 +1,27 @@
 FRAMEWORK: NET461
 NUGET
   remote: https://www.nuget.org/api/v2
-    Argu (3.3)
-    Expecto (1.1.2)
+    Argu (3.7)
+    Expecto (2.4.2)
       Argu (>= 3.2)
       FSharp.Core (>= 3.1.2.5)
-    Expecto.FsCheck (1.1.2)
-      Expecto (>= 1.1.2)
+    Expecto.FsCheck (2.4.2)
+      Expecto (>= 2.4.2)
       FsCheck (>= 2.6.2)
       FSharp.Core (>= 3.1.2.5)
     FsCheck (2.6.2)
       FSharp.Core (>= 3.1.2.5)
     FSharp.Core (4.0.0.1)
     NodaTime (1.3.2)
-    NuGet.CommandLine (3.4.3)
-    Suave (2.0.0-rc1)
+    NuGet.CommandLine (3.5)
+    Suave (2.0)
       FSharp.Core (>= 4.0.0.1)
-    Suave.Testing (2.0.0-rc1)
-      Expecto (>= 1.1.2)
+    Suave.Testing (2.0)
+      Expecto (>= 2.1.1)
       FSharp.Core (>= 4.0.0.1)
-      Suave (>= 2.0.0-rc1)
+      Suave (>= 2.0)
 GITHUB
   remote: haf/YoLo
-    YoLo.fs (11023b9fcd2c1d28a7a0c0de5609647e3e1b03ce)
+    YoLo.fs (76e16a4c9338c2f04cb067add0e3a33b42a0f396)
   remote: logary/logary
-    src/Logary.Facade/Facade.fs (8a5f623a707b7c1958df4b07ebbd3cc67e9bfc7e)
+    src/Logary.Facade/Facade.fs (41b3a6ca510f8e44ecbabfe8b83ae8dae368e11c)

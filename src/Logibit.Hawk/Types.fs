@@ -356,7 +356,7 @@ module Settings =
   /// the credentials for the id given were not found.
   let empty<'a> () : Settings<'a> =
     { clock              = NodaTime.SystemClock.Instance
-      logger             = Targets.create Warn
+      logger             = Targets.create Warn [| "Logibit"; "Hawk" |]
       allowedClockSkew   = Duration.FromSeconds 60L
       localClockOffset   = Duration.Zero
       nonceValidator     = nonceValidatorMem
