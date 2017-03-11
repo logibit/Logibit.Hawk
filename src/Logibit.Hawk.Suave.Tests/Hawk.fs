@@ -110,6 +110,22 @@ let serverClientAuthentication =
           Expect.stringContains body "authenticated user" "Successful authentication"
           Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
         )
+
+      yield testCase "signing PUT request" <| fun _ ->
+        let opts =
+          { ClientOptions.createSimple (credsInner "1")
+              with payload = Some [| 0uy; 1uy |] }
+
+        let request =
+          setAuthHeader HM.PUT opts
+          >> setBytes [| 0uy; 1uy |]
+
+        runWithDefaultConfig hawkAuthenticate
+        |> req HttpMethod.PUT None request (fun resp ->
+          let body = resp.Content.ReadAsStringAsync().Result
+          Expect.stringContains body "authenticated user" "Successful authentication"
+          Expect.equal (resp.StatusCode) (HttpStatusCode.OK) "OK"
+        )
     ]
 
     testList "with proxy" [

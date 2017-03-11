@@ -2,7 +2,7 @@ source https://www.nuget.org/api/v2
 framework net461
 
 nuget FsCheck
-nuget FSharp.Core
+nuget FSharp.Core < 4.1
 nuget Expecto
 nuget Expecto.FsCheck
 nuget NodaTime
