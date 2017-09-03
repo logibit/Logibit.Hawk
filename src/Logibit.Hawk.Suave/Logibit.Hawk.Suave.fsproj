@@ -11,6 +11,7 @@
     <Id>Hawk.Suave</Id>
     <Name>Logibit's Hawk.Suave</Name>
     <Description>Suave integration with the F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.</Description>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
