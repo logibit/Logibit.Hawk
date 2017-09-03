@@ -1,15 +1,15 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    albacore (2.6.2)
+    albacore (2.8.0)
       map (~> 6.5)
       nokogiri (~> 1.5)
       rake (~> 10)
       semver2 (~> 3.4)
     map (6.6.0)
-    mini_portile2 (2.1.0)
-    nokogiri (1.6.8.1)
-      mini_portile2 (~> 2.1.0)
+    mini_portile2 (2.2.0)
+    nokogiri (1.8.0)
+      mini_portile2 (~> 2.2.0)
     rake (10.5.0)
     semver2 (3.4.2)
 
@@ -20,4 +20,4 @@ DEPENDENCIES
   albacore
 
 BUNDLED WITH
-   1.12.5
+   1.15.0
