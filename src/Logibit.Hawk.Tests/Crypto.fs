@@ -14,7 +14,7 @@ let crypto =
         Crypto.genNormStr
           "header"
           { credentials = credentials SHA256 
-            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
+            timestamp   = Instant.FromUnixTimeSeconds 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
@@ -33,7 +33,7 @@ let crypto =
         Crypto.genNormStr
           "header"
           { credentials = credentials SHA256
-            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
+            timestamp   = Instant.FromUnixTimeSeconds 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
@@ -55,7 +55,7 @@ let crypto =
               { id        = "sample"
                 key       = "dasdfasdf"
                 algorithm = SHA256 }
-            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
+            timestamp   = Instant.FromUnixTimeSeconds 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"
@@ -77,7 +77,7 @@ let crypto =
               { id        = "sample"
                 key       = "dasdfasdf"
                 algorithm = SHA256 }
-            timestamp   = Instant.FromSecondsSinceUnixEpoch 1357747017L
+            timestamp   = Instant.FromUnixTimeSeconds 1357747017L
             nonce       = "k3k4j5"
             ``method``  = GET
             resource    = "/resource/something"

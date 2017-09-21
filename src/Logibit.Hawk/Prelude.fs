@@ -30,7 +30,7 @@ module Instant =
 
   /// Convert the instant to nanoseconds since epoch
   let toEpochNanos (i : Instant) =
-    i.Ticks * 100L (* 100 nanos per tick *)
+    i.ToUnixTimeTicks() * 100L (* 100 nanos per tick *)
 
 module Hash =
   open System.Text

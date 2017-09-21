@@ -204,8 +204,8 @@ let parseHeader (header : string) =
 
 let authenticate (s: Settings<'user>) (req: HeaderRequest)
                  : Async<Choice<HawkAttributes * Credentials * 'user, AuthError>> =
-  let now = s.clock.Now
-  let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
+  let now = s.clock.GetCurrentInstant()
+  let nowWithOffset = s.clock.GetCurrentInstant() + s.localClockOffset // before computing
 
   s.logger.debug (fun level ->
     { value   = Event "Authenticate Start"

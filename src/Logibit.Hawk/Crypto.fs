@@ -49,7 +49,7 @@ let genNormStr (``type`` : string) (opts : FullAuth) =
       yield "."
       yield ``type``
       yield "\n"
-      yield sprintf "%d\n" (opts.timestamp.Ticks / NodaConstants.TicksPerSecond)
+      yield sprintf "%d\n" (opts.timestamp.ToUnixTimeTicks() / NodaConstants.TicksPerSecond)
       yield sprintf "%s\n" opts.nonce
       yield sprintf "%O\n" opts.``method``
       yield sprintf "%s\n" opts.resource

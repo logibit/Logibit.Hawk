@@ -12,7 +12,7 @@ open Logibit.Hawk.Logging
 open Logibit.Hawk.Types
 open Logibit.Hawk.Tests.Shared
 
-let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
+let ts i = Instant.FromUnixTimeTicks(i * NodaConstants.TicksPerMillisecond)
 
 let clock =
   SystemClock.Instance
@@ -47,7 +47,7 @@ let ``bewit generation`` =
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
-            localClockOffset         = ts 1356420407232L - clock.Now
+            localClockOffset         = ts 1356420407232L - clock.GetCurrentInstant()
             ext                      = Some "xandyandz"
             logger                   = logger }
       Expect.equal b
@@ -61,7 +61,7 @@ let ``bewit generation`` =
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
-            localClockOffset         = ts 1356420407232L - clock.Now
+            localClockOffset         = ts 1356420407232L - clock.GetCurrentInstant()
             ext                      = Some "xandyandz"
             logger                   = logger }
       Expect.equal b
@@ -75,7 +75,7 @@ let ``bewit generation`` =
           { BewitOptions.credentials = credsInner
             ttl                      = Duration.FromSeconds 300L
             clock                    = clock
-            localClockOffset         = ts 1356420407232L - clock.Now
+            localClockOffset         = ts 1356420407232L - clock.GetCurrentInstant()
             ext                      = None
             logger                   = logger }
       Expect.equal b
@@ -127,7 +127,7 @@ let ``parsing bewit parts`` =
                       { BewitOptions.credentials = credsInner
                         ttl                      = Duration.FromSeconds 300L
                         clock                    = clock
-                        localClockOffset         = ts 1356420407232L - clock.Now
+                        localClockOffset         = ts 1356420407232L - clock.GetCurrentInstant()
                         ext                      = None
                         logger                   = logger }
     match Bewit.parse b with
@@ -143,7 +143,7 @@ let settings =
   { Settings.clock   = clock
     logger           = logger
     allowedClockSkew = Duration.FromMilliseconds 300L
-    localClockOffset = ts 1356420407232L - clock.Now
+    localClockOffset = ts 1356420407232L - clock.GetCurrentInstant()
     nonceValidator   = Settings.nonceValidatorMem
     userRepo        = fun id -> async.Return (Choice1Of2 (credsInner, "steve"))
     useProxyHost     = false
@@ -158,7 +158,7 @@ let authentication =
     { BewitOptions.credentials = credsInner
       ttl                      = Duration.FromSeconds 300L
       clock                    = clock
-      localClockOffset         = ts 1356420407232L - clock.Now
+      localClockOffset         = ts 1356420407232L - clock.GetCurrentInstant()
       ext                      = Some "some-app-data"
       logger                   = logger }
 

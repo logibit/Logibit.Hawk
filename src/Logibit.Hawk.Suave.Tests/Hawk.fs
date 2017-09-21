@@ -174,7 +174,7 @@ let bewitServerClientAuth =
   let clock =
     SystemClock.Instance
 
-  let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerMillisecond)
+  let ts i = Instant.FromUnixTimeTicks(i * NodaConstants.TicksPerMillisecond)
 
   let setBewitQuery opts req =
     Client.bewit (Uri("http://127.0.0.1:8999/")) opts

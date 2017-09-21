@@ -56,7 +56,7 @@ let authorizationHeader =
 [<Tests>]
 let server =
 
-  let timestamp = Instant.FromSecondsSinceUnixEpoch 123456789L
+  let timestamp = Instant.FromUnixTimeTicks 123456789L
 
   let clock =
     { new IClock with
@@ -77,7 +77,7 @@ let server =
       useProxyHost     = false
       useProxyPort     = false }
 
-  let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
+  let ts i = Instant.FromUnixTimeTicks(i * NodaConstants.TicksPerSecond)
 
   testList "#authenticate" [
     testCaseAsync "passes auth with valid sha1 header, no payload" <| async {
@@ -91,7 +91,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
       let attrs, _, user = ensureValue res
       Expect.equal user "steve" "return value"
     }
@@ -138,7 +138,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.GetCurrentInstant() }
       let attrs, _, user = ensureValue res
       Expect.equal user "steve" "return value"
     }
@@ -154,7 +154,7 @@ let server =
           host          = Some "example.com"
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
       let attrs, _, user = ensureValue res
       Expect.equal user "steve" "return value"
     }
@@ -170,7 +170,7 @@ let server =
           host          = Some "example.com"
           port          = Some 8080us
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
       let _, _, user = ensureValue res
       Expect.equal user "steve" "return value"
     }
@@ -188,7 +188,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1357926341L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1357926341L - clock.GetCurrentInstant() }
       let _, _, user = ensureValue res
       Expect.equal user "steve" "return value"
     }
@@ -204,7 +204,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.GetCurrentInstant() }
       ensureErr res |> function
       | MissingAttribute a ->
         Expect.equal a "hash" "hash attr"
@@ -237,7 +237,7 @@ let server =
       let settings' =
         { settings with
             nonceValidator = Settings.nonceValidatorMem
-            localClockOffset = ts 1353832234L - clock.Now }
+            localClockOffset = ts 1353832234L - clock.GetCurrentInstant() }
       let header = "Hawk id=\"123\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"bXx7a7p1h9QYQNZ8x7QhvDQym8ACgab4m3lVSFn4DBw=\", ext=\"hello\""
       let data =
@@ -270,7 +270,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
       
       ensureErr res |> function
       | FaultyAuthorizationHeader _ ->
@@ -288,7 +288,7 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
 
       ensureErr res |> function
       | FaultyAuthorizationHeader _ ->
@@ -316,7 +316,7 @@ let server =
                   host          = None
                   port          = None
                   contentType   = None }
-                |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+                |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
               ensureErr res |> function
               | MissingAttribute actualAttr ->
                 Expect.equal (actualAttr) (attr) "attr"

@@ -36,7 +36,7 @@ type ClientOptions =
 module ClientOptions =
   let createSimple creds =
     { credentials        = creds
-      timestamp          = SystemClock.Instance.Now
+      timestamp          = SystemClock.Instance.GetCurrentInstant()
       nonce              = None
       contentType        = None
       ext                = None
@@ -86,7 +86,7 @@ module Validation =
 let calcParameter (credentials : Credentials) (artifacts : FullAuth) (mac : string) =
   String.Concat
     [ yield sprintf @"id=""%s""" credentials.id
-      yield sprintf @", ts=""%d""" (uint64 (artifacts.timestamp.Ticks / (NodaConstants.TicksPerSecond)))
+      yield sprintf @", ts=""%d""" (uint64 (artifacts.timestamp.ToUnixTimeTicks() / (NodaConstants.TicksPerSecond)))
       yield sprintf @", nonce=""%s""" artifacts.nonce
       yield artifacts.hash
             |> Option.map (sprintf @", hash=""%s""")

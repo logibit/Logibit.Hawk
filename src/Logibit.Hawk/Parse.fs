@@ -30,7 +30,7 @@ let iso8601Instant =
 let unixSecInstant =
   int64
   >> (map ((*) NodaConstants.TicksPerSecond))
-  >> (map (Instant.FromTicksSinceUnixEpoch))
+  >> (map (Instant.FromUnixTimeTicks))
 
 let id x = Choice1Of2 x
 

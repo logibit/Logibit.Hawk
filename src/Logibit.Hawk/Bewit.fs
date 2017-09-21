@@ -165,14 +165,14 @@ module internal Impl =
     builder.Uri
 
 let gen (uri : Uri) (opts : BewitOptions) =
-  let now = opts.clock.Now
-  let nowWithOffset = opts.clock.Now + opts.localClockOffset // before computing
+  let now = opts.clock.GetCurrentInstant()
+  let nowWithOffset = opts.clock.GetCurrentInstant() + opts.localClockOffset // before computing
   let exp = nowWithOffset + opts.ttl
   let norm, mac =
     opts
     |> BewitOptions.toAuth nowWithOffset uri exp
     |> Crypto.calcNormMac "bewit"
-  let exp = exp.Ticks / NodaConstants.TicksPerSecond |> string
+  let exp = exp.ToUnixTimeTicks() / NodaConstants.TicksPerSecond |> string
   let ext = opts.ext |> Option.orDefault ""
   opts.logger.verbose (fun level ->
     { value   = Event "Generate Bewit"
@@ -199,8 +199,8 @@ open Impl
 let authenticate (s: Settings<'TPrincipal>) (req: QueryRequest)
                  : Async<Choice<BewitAttributes * Credentials * 'TPrincipal, BewitError>> =
 
-  let now = s.clock.Now
-  let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
+  let now = s.clock.GetCurrentInstant()
+  let nowWithOffset = s.clock.GetCurrentInstant() + s.localClockOffset // before computing
 
   s.logger.verbose (fun level ->
     { value   = Event "Authenticate Bewit for {uri}"
