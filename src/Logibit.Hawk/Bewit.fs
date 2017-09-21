@@ -113,55 +113,47 @@ module internal Impl =
   let toBewitError key = function
     | ParseError msg -> InvalidAttribute (key, msg)
   
-  let validateCredentials credsRepo (attrs : BewitAttributes)
-                          : Choice<BewitAttributes * (Credentials * _), BewitError> =
-    credsRepo attrs.id
-    >@> BewitError.ofCredsError
-    >!> fun cs -> attrs, cs
+  let validateCredentials (userRepo: UserRepo<'user>) uid: Async<Choice<Credentials * 'user, BewitError>> =
+    userRepo uid |> Async.map (Choice.mapSnd BewitError.ofCredsError)
 
-  let validateMethod ((attrs : BewitAttributes), cs) 
-                     : Choice<BewitAttributes * (Credentials * _), BewitError>=
+  let validateMethod (attrs: BewitAttributes): Choice<unit, BewitError>=
     if attrs.``method``.ToString() = "GET" then
-      Choice1Of2 (attrs, cs)
+      Choice1Of2 ()
     else
-      sprintf "wrong method supplied to request. Should be 'GET', but was given '%O'"
+      sprintf "Wrong method supplied to request. Should be 'GET', but was given '%O'"
         attrs.``method``
       |> WrongMethodError
       |> Choice2Of2
 
-  let validateMac req (attrs, cs)
-                  : Choice<BewitAttributes * (Credentials * _), BewitError>=
+  let validateMac req cs attrs: Choice<unit, BewitError>=
     let norm, calcMac =
-      FullAuth.ofBewitAttrs (fst cs) req.host req.port attrs
+      FullAuth.ofBewitAttrs cs req.host req.port attrs
       |> Crypto.calcNormMac "bewit"
     if String.equalsConstantTime calcMac attrs.mac then
-      Choice1Of2 (attrs, cs)
+      Choice1Of2 ()
     else
       Choice2Of2 (BadMac (attrs.mac, calcMac, norm))
 
-  let validateTTL (nowWithOffset : Instant)
-                   (({ expiry = expiry } as attrs), cs)
-                  : Choice<BewitAttributes * (Credentials * _), BewitError> =
-    if expiry > nowWithOffset then
-      Choice.create (attrs, cs)
+  let validateTTL (nowWithOffset: Instant) attrs: Choice<unit, BewitError> =
+    if attrs.expiry > nowWithOffset then
+      Choice.create ()
     else
-      BewitTtlExpired (expiry, nowWithOffset)
-      |> Choice.createSnd
+      Choice.createSnd (BewitTtlExpired (attrs.expiry, nowWithOffset))
 
-  let decodeFromBase64 (req : QueryRequest) =
+  let decodeFromBase64 (req: QueryRequest) =
     req.uri.Query.Split '&'
     |> Array.tryFind (fun x -> x.Contains("bewit="))
     |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
     |> Choice.ofOption (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
     |> Choice.bind (ModifiedBase64Url.decode >> Choice.mapSnd DecodeError)
 
-  let logFailure (logger : Logger) timestamp (err : BewitError) =
-    { value     = Event "Authenticate Failure"
-      level     = Info
-      name      = "Logibit.Hawk.Bewit.authenticate".Split('.')
-      fields    = [ "error", box err ] |> Map.ofList
-      timestamp = Instant.toEpochNanos timestamp }
-    |> logger.logSimple
+  let logFailure (logger: Logger) timestamp (err: BewitError): Async<unit> =
+    logger.infoWithBP (fun level ->
+      { value     = Event "Authenticate Failure"
+        level     = level
+        name      = "Logibit.Hawk.Bewit.authenticate".Split('.')
+        fields    = [ "error", box err ] |> Map.ofList
+        timestamp = Instant.toEpochNanos timestamp })
 
   let mapResult (a, (b, c)) = a, b, c
 
@@ -202,15 +194,16 @@ let gen (uri : Uri) (opts : BewitOptions) =
 let genBase64Str uri =
   gen uri >> Encoding.ModifiedBase64Url.encode
 
-let authenticate (settings : Settings<'TPrincipal>) 
-                 (req : QueryRequest)
-                 : Choice<BewitAttributes * Credentials * 'TPrincipal, BewitError> =
+open Impl
 
-  let now = settings.clock.Now
-  let nowWithOffset = settings.clock.Now + settings.localClockOffset // before computing
+let authenticate (s: Settings<'TPrincipal>) (req: QueryRequest)
+                 : Async<Choice<BewitAttributes * Credentials * 'TPrincipal, BewitError>> =
 
-  settings.logger.verbose (fun level ->
-    { value   = Event "Authenticate Bewit"
+  let now = s.clock.Now
+  let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
+
+  s.logger.verbose (fun level ->
+    { value   = Event "Authenticate Bewit for {uri}"
       level   = level
       name    = "Logibit.Hawk.Bewit.authenticate".Split('.')
       fields  =
@@ -227,18 +220,21 @@ let authenticate (settings : Settings<'TPrincipal>)
   let reqAttr m = Parse.reqAttr MissingAttribute Impl.toBewitError m
   let optAttr m = Parse.optAttr m
 
-  Impl.decodeFromBase64 req
-  >>= parse // parse bewit string
-  >>= (fun parts ->
-    Writer.lift (BewitAttributes.create req.``method`` (Impl.removeBewitFromUri req.uri))
-    >>~ reqAttr parts "id" (Parse.nonEmptyString, BewitAttributes.id_)
-    >>= reqAttr parts "exp" (Parse.unixSecInstant, BewitAttributes.expiry_)
-    >>= reqAttr parts "mac" (Parse.id, BewitAttributes.mac_)
-    >>= optAttr parts "ext" (Parse.id, BewitAttributes.ext_)
-    >!> Writer.``return``
-    >>= Impl.validateCredentials settings.credsRepo
-    >>= Impl.validateMethod
-    >>= Impl.validateMac req
-    >>= Impl.validateTTL nowWithOffset
-    >!> Impl.mapResult
-    >>@ Impl.logFailure settings.logger now)
+  asyncChoice (logFailure s.logger now) {
+    let! raw = decodeFromBase64 req
+    let! parts = parse raw
+
+    let! attrs =
+      Writer.lift (BewitAttributes.create req.``method`` (removeBewitFromUri req.uri))
+      >>~ reqAttr parts "id" (Parse.nonEmptyString, BewitAttributes.id_)
+      >>= reqAttr parts "exp" (Parse.unixSecInstant, BewitAttributes.expiry_)
+      >>= reqAttr parts "mac" (Parse.id, BewitAttributes.mac_)
+      >>= optAttr parts "ext" (Parse.id, BewitAttributes.ext_)
+      >!> Writer.unwrap
+
+    let! credentials, user = Impl.validateCredentials s.userRepo attrs.id
+    do! Impl.validateMethod attrs
+    do! Impl.validateMac req credentials attrs
+    do! Impl.validateTTL nowWithOffset attrs
+    return attrs, credentials, user
+  }

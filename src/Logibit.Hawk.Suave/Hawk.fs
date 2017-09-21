@@ -34,12 +34,12 @@ module private Impl =
     | SHttpMethod.OPTIONS -> OPTIONS
     | SHttpMethod.OTHER s -> failwithf "method %s not supported" s
 
-  let bisect (s : string) (on : char) =
+  let bisect (s: string) (on: char) =
     let pi = s.IndexOf on
     if pi = -1 then None else
     Some ( s.Substring(0, pi), s.Substring(pi + 1, s.Length - pi - 1) )
 
-  let parseAuthHeader (s : string) =
+  let parseAuthHeader (s: string) =
     match bisect s ' ' with
     | None -> Choice2Of2 (sprintf "Couldn't split '%s' into two parts on space" s)
     | Some (scheme, parameters) -> Choice1Of2 (scheme.TrimEnd(':'), parameters)
@@ -81,7 +81,7 @@ type ReqHeaderFactory<'a> = Settings<'a> -> HttpContext -> Choice<HeaderRequest,
 ///                   { req with port = Some 8080us }))
 type ReqQueryFactory<'a> = Settings<'a> -> HttpContext -> Choice<QueryRequest, string>
 
-let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
+let bindHeaderReq (s: Settings<'a>) ctx: Choice<HeaderRequest, string> =
   let ub = UriBuilder ctx.request.url
   ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
@@ -99,11 +99,13 @@ let bindHeaderReq (s : Settings<'a>) ctx : Choice<HeaderRequest, string> =
 //let bindHeaderReqStr s =
 //  bindHeaderReq s >> (fun mreq -> mreq >>- (fun req -> { req with port = Some 8080us }))
 
-let authHeader (settings : Settings<'a>) (requestFactory : ReqHeaderFactory<'a>) =
+let authHeader (settings: Settings<'a>) (requestFactory: ReqHeaderFactory<'a>) =
   fun ctx ->
-    requestFactory settings ctx
-    >@> AuthError.Other
-    >>= Server.authenticate settings
+    match requestFactory settings ctx >@> AuthError.Other with
+    | Choice1Of2 req ->
+      Server.authenticate settings req
+    | Choice2Of2 err ->
+      Async.result (Choice2Of2 err)
 
 [<Obsolete("Use authHeader instead")>]
 let authCtx a = authHeader a
@@ -113,7 +115,7 @@ let authHeaderDefault s = authHeader s bindHeaderReq
 [<Obsolete("Use authHeaderDefault instead")>]
 let authCtxDefault a = authHeaderDefault a
 
-let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
+let bindQueryRequest (s: Settings<'a>) ctx: Choice<QueryRequest, string> =
   let ub = UriBuilder (ctx.request.url)
   ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
@@ -124,13 +126,15 @@ let bindQueryRequest (s : Settings<'a>) ctx : Choice<QueryRequest, string> =
       host          = None
       port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None })
 
-let authBewit (settings : Settings<'a>) (requestFactory : ReqQueryFactory<'a>) =
+let authBewit (settings: Settings<'a>) (requestFactory: ReqQueryFactory<'a>): HttpContext -> Async<Choice<_, _>> =
   fun ctx ->
-    requestFactory settings ctx
-    >@> BewitError.Other
-    >>= Bewit.authenticate settings
+    match requestFactory settings ctx >@> BewitError.Other with
+    | Choice1Of2 req ->
+      Bewit.authenticate settings req
+    | Choice2Of2 err ->
+      Async.result (Choice2Of2 err)
 
-let authBewitDefault (settings : Settings<'a>) =
+let authBewitDefault (settings: Settings<'a>) =
   authBewit settings bindQueryRequest
 
 /// Authenticate the request with the given settings, and a request
@@ -145,21 +149,25 @@ let authBewitDefault (settings : Settings<'a>) =
 ///
 /// Also see the comments on the ReqFactory type for docs on how to contruct
 /// your own Req value, or re-map the default one.
-let authenticate (settings : Settings<'a>)
-                 (reqFac : ReqHeaderFactory<'a>)
-                 (fErr : AuthError -> WebPart)
-                 (fCont : _ -> WebPart)
-                 : WebPart =
+let authenticate (settings: Settings<'a>)
+                 (reqFac: ReqHeaderFactory<'a>)
+                 (onError: AuthError -> WebPart)
+                 (onSuccess: _ -> WebPart): WebPart =
   fun ctx ->
-    match authHeader settings reqFac ctx with
-    | Choice1Of2 res ->
-      (Writers.setUserData HawkDataKey res
-       >=> Writers.setHeaderValue "Vary" "Authorization"
-       >=> Writers.setHeaderValue "Vary" "Cookie"
-       >=> fCont res) ctx
+    async {
+      let! auth = authHeader settings reqFac ctx
+      match auth with
+      | Choice1Of2 res ->
+        let composed =
+          Writers.setUserData HawkDataKey res
+           >=> Writers.setHeaderValue "Vary" "Authorization"
+           >=> Writers.setHeaderValue "Vary" "Cookie"
+           >=> onSuccess res
+        return! composed ctx
 
-    | Choice2Of2 err ->
-      fErr err ctx
+      | Choice2Of2 err ->
+        return! onError err ctx
+    }
 
 /// Like `authenticate` but with the default header request factory function.
 let authenticateDefault settings =
@@ -175,14 +183,16 @@ let authenticateDefault settings =
 ///
 /// Also see the comments on the ReqQueryFactory type for docs on how to contruct your own Req value,
 /// or re-map the default one. Authenticates Bewit and returns a WebPart for composing with Suave
-let authenticateBewit settings reqFac fErr fCont : WebPart =
+let authenticateBewit settings reqFac onError onSuccess: WebPart =
   fun ctx ->
-    match authBewit settings reqFac ctx with
-    | Choice1Of2 res ->
-      (Writers.setUserData HawkDataKey res
-       >=> fCont res) ctx
-    | Choice2Of2 err ->
-      fErr err ctx
+    async {
+      let! auth = authBewit settings reqFac ctx
+      match auth with
+      | Choice1Of2 res ->
+        return! (Writers.setUserData HawkDataKey res >=> onSuccess res) ctx
+      | Choice2Of2 err ->
+        return! onError err ctx
+    }
 
 /// Like `authenticateBewit` but with the default query request factory function.
 let authenticateBewitDefault settings =

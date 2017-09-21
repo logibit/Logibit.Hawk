@@ -284,51 +284,51 @@ type CredsError =
 /// `Choice<Credentials * 'a, CredsError>`. The rest of the library
 /// takes care of validating these returned credentials, or yielding
 /// the correct error in response.
-type CredsRepo<'a> = UserId -> Choice<Credentials * 'a, CredsError>
+type UserRepo<'a> = UserId -> Async<Choice<Credentials * 'a, CredsError>>
 
 type NonceError =
   | AlreadySeen
   | Other of string
 
 /// Authentication settings
-type Settings<'a> =
+type Settings<'user> =
   { /// The clock to use for getting the time.
-    clock            : IClock
+    clock: IClock
 
     /// A logger - useful to use for finding input for the authentication
     /// verification
-    logger           : Logger
+    logger: Logger
 
     /// Number of seconds of permitted clock skew for incoming
     /// timestamps. Defaults to 60 seconds.  Provides a +/- skew which
     /// means actual allowed window is double the number of seconds.
-    allowedClockSkew : Duration
+    allowedClockSkew: Duration
 
     /// Local clock time offset which can be both +/-. Defaults to 0 s.
-    localClockOffset : Duration
+    localClockOffset: Duration
 
     /// An extra nonce validator - allows you to keep track of the last,
     /// say, 1000 nonces, to be safe against replay attacks. By default
     /// saves in memory, so if you want to run across load balancers, then
     /// replace this validator with something that stores data shared
     /// between the nodes.
-    nonceValidator   : string * Instant -> Choice<unit, NonceError>
+    nonceValidator: string * Instant -> Choice<unit, NonceError>
 
     /// Credentials repository to fetch credentials based on UserId
     /// from the Hawk authorisation header.
-    credsRepo        : CredsRepo<'a>
+    userRepo: UserRepo<'user>
 
     /// Enable this flag if your proxy sets the headers "x-forwarded-host". If
     /// your proxy doesn't, a malicious client can spoof the headers for any
     /// domain. It is up implementations like Logibit.Hawk.Suave to read and
     /// use this setting.
-    useProxyHost     : bool
+    useProxyHost: bool
 
     /// Enable this flag if your proxy sets the headers "x-forwarded-port". If
     /// your proxy doesn't, a malicious client can spoof the headers for any
     /// domain. It is up implementations like Logibit.Hawk.Suave to read and
     /// use this setting.
-    useProxyPort     : bool }
+    useProxyPort: bool }
 
 module Settings =
   open System.Collections.Concurrent
@@ -360,7 +360,7 @@ module Settings =
       allowedClockSkew   = Duration.FromSeconds 60L
       localClockOffset   = Duration.Zero
       nonceValidator     = nonceValidatorMem
-      credsRepo          = fun _ -> Choice2Of2 CredentialsNotFound
+      userRepo          = fun _ -> async.Return (Choice2Of2 CredentialsNotFound)
       useProxyHost       = false
       useProxyPort       = false }
 

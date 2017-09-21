@@ -73,29 +73,30 @@ let server =
       allowedClockSkew = Duration.FromMilliseconds 8000L
       localClockOffset = Duration.Zero
       nonceValidator   = Settings.nonceValidatorNoop
-      credsRepo        = fun id -> Choice1Of2 (credsInner id, "steve")
+      userRepo        = fun id -> Async.result (Choice1Of2 (credsInner id, "steve"))
       useProxyHost     = false
       useProxyPort     = false }
 
   let ts i = Instant.FromTicksSinceUnixEpoch(i * NodaConstants.TicksPerSecond)
 
   testList "#authenticate" [
-    testCase "passes auth with valid sha1 header, no payload" <| fun _ ->
+    testCaseAsync "passes auth with valid sha1 header, no payload" <| async {
       let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8080/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      let attrs, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "passes auth valid Client.header value" <| fun _ ->
+    testCaseAsync "passes auth valid Client.header value" <| async {
       // same as:
       // Client/#header/returns a valid authorization header (sha256, content type)
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
@@ -113,116 +114,126 @@ let server =
         |> Client.header uri POST
         |> ensureValue
 
-      { ``method``    = POST
-        uri           = uri
-        authorisation = clientData.header
-        payload       = Some (UTF8.bytes "something to write about")
-        host          = None
-        port          = None
-        contentType   = Some "text/plain" }
-      |> authenticate settings
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = POST
+          uri           = uri
+          authorisation = clientData.header
+          payload       = Some (UTF8.bytes "something to write about")
+          host          = None
+          port          = None
+          contentType   = Some "text/plain" }
+        |> authenticate settings
+      let attrs, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "parses a valid authentication header (sha256)" <| fun _ ->
+    testCaseAsync "parses a valid authentication header (sha256)" <| async {
       let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
                    "mac=\"m8r1rHbXN6NgO+KIIhjO7sFRyd78RNGVUwehe8Cp2dU=\", ext=\"some-app-data\""
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
-        authorisation = header
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+      let attrs, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "parses a valid authentication header (host override)" <| fun _ ->
+    testCaseAsync "parses a valid authentication header (host override)" <| async {
       let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-      { ``method``    = GET
-        uri           = Uri "http://example1.com:8080/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = Some "example.com"
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example1.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = Some "example.com"
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      let attrs, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "parses a valid authentication header (host port override)" <| fun _ ->
+    testCaseAsync "parses a valid authentication header (host port override)" <| async {
       let header = "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-      { ``method``    = GET
-        uri           = Uri "http://example1.com:80/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = Some "example.com"
-        port          = Some 8080us
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example1.com:80/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = Some "example.com"
+          port          = Some 8080us
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      let _, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "parses a valid authentication header (POST with payload-hash, payload for later check)" <| fun _ ->
+    testCaseAsync "parses a valid authentication header (POST with payload-hash, payload for later check)" <| async {
       let header = "Hawk id=\"123456\", ts=\"1357926341\", nonce=\"1AwuJD\", " +
                    "hash=\"qAiXIVv+yjDATneWxZP2YCTa9aHRgQdnH9b3Wc+o3dg=\", " +
                    "ext=\"some-app-data\", " +
                    "mac=\"UeYcj5UoTVaAWXNvJfLVia7kU3VabxCqrccXP8sUGC4=\""
-      { ``method``    = POST
-        uri           = Uri "http://example.com:8080/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1357926341L - clock.Now }
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method``    = POST
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1357926341L - clock.Now }
+      let _, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
 
-    testCase "errors on missing hash" <| fun _ ->
+    testCaseAsync "errors on missing hash" <| async {
       let header = "Hawk id=\"dh37fgj492je\", ts=\"1353832234\", nonce=\"j4h3g2\", " +
                    "mac=\"m8r1rHbXN6NgO+KIIhjO7sFRyd78RNGVUwehe8Cp2dU=\", ext=\"some-app-data\""
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
-        authorisation = header
-        payload       = Some (UTF8.bytes "body")
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
-      |> ensureErr
-      |> function
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8000/resource/1?b=1&a=2"
+          authorisation = header
+          payload       = Some (UTF8.bytes "body")
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353832234L - clock.Now }
+      ensureErr res |> function
       | MissingAttribute a ->
-        Expect.equal (a) ("hash") "hash attr"
+        Expect.equal a "hash" "hash attr"
       | err ->
         Tests.failtestf "expected MissingAttribute(hash) but got '%A'" err
+    }
 
-    testCase "errors on a stale timestamp" <| fun _ ->
+    testCaseAsync "errors on a stale timestamp" <| async {
       let expectedDelta = Duration.FromSeconds 9L
       let header = "Hawk id=\"123456\", ts=\"1362337299\", nonce=\"UzmxSs\", ext=\"some-app-data\", " +
                    "mac=\"wnNUxchvvryMH2RxckTdZ/gY3ijzvccx4keVvELC61w=\""
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8080/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = Duration.Zero }
-      |> ensureErr
-      |> function
-      | StaleTimestamp _ -> ()
-      | err -> Tests.failtest "expected 'StaleTimestamp _'"
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = Duration.Zero }
 
-    testCase "errors on a replay" <| fun _ ->
+      ensureErr res |> function
+      | StaleTimestamp _ ->
+        ()
+      | err ->
+        Tests.failtest "expected 'StaleTimestamp _'"
+    }
+
+    testCaseAsync "errors on a replay" <| async {
       let settings' =
         { settings with
             nonceValidator = Settings.nonceValidatorMem
@@ -237,67 +248,85 @@ let server =
           host          = None
           port          = None
           contentType   = None }
-      
-      authenticate settings' data |> ensureValue |> ignore
-      authenticate settings' data |> ensureErr
-      |> function
-      | NonceError AlreadySeen -> ()
-      | err -> Tests.failtestf "wrong error, expected NonceError AlreadySeen, got '%A'" err
 
-    testCase "errors on an invalid authentication header: wrong scheme" <| fun _ ->
+      let! res1 = authenticate settings' data
+      ensureValue res1 |> ignore
+      let! res2 = authenticate settings' data
+      ensureErr res2 |> function
+      | NonceError AlreadySeen ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected NonceError AlreadySeen, got '%A'" err
+    }
+
+    testCaseAsync "errors on an invalid authentication header: wrong scheme" <| async {
       let header = "Hawkish id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8080/resource/4?filter=a"
-        authorisation = header
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-      |> ensureErr
-      |> function
-      | FaultyAuthorizationHeader _ -> ()
-      | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = header
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+      
+      ensureErr res |> function
+      | FaultyAuthorizationHeader _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+    }
 
-    testCase "errors on an missing authorization header" <| fun _ ->
-      { ``method``    = GET
-        uri           = Uri "http://example.com:8080/resource/4?filter=a"
-        authorisation = ""
-        payload       = None
-        host          = None
-        port          = None
-        contentType   = None }
-      |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-      |> ensureErr
-      |> function
-      | FaultyAuthorizationHeader _ -> ()
-      | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+    testCaseAsync "errors on an missing authorization header" <| async {
+      let! res =
+        { ``method``    = GET
+          uri           = Uri "http://example.com:8080/resource/4?filter=a"
+          authorisation = ""
+          payload       = None
+          host          = None
+          port          = None
+          contentType   = None }
+        |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+
+      ensureErr res |> function
+      | FaultyAuthorizationHeader _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+    }
 
     testCase "errors on an missing host header" <| fun _ ->
       Tests.skiptest "can't be tested, can't construct uri otherwise"
 
-    testCase "errors on an missing req (id, ts, nonce, mac) authorization attribute" <| fun _ ->
-      [ "id", "Hawk ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-        "ts", "Hawk id=\"1\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-        "nonce", "Hawk id=\"1\", ts=\"1353788437\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
-        "mac", "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", ext=\"hello\"" ]
-      |> List.iter (fun (attr, header) ->
-          { ``method``    = GET
-            uri           = Uri "http://example.com:8080/resource/4?filter=a"
-            authorisation = header
-            payload       = None
-            host          = None
-            port          = None
-            contentType   = None }
-          |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
-          |> ensureErr
-          |> function
-          | MissingAttribute actualAttr -> Expect.equal (actualAttr) (attr) "attr"
-          | err -> Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
-          )
+    testList "errors on an missing req (id, ts, nonce, mac) authorization attribute" [
+      yield!
+        [ "id", "Hawk ts=\"1353788437\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+          "ts", "Hawk id=\"1\", nonce=\"k3j4h2\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+          "nonce", "Hawk id=\"1\", ts=\"1353788437\", mac=\"zy79QQ5/EYFmQqutVnYb73gAc/U=\", ext=\"hello\""
+          "mac", "Hawk id=\"1\", ts=\"1353788437\", nonce=\"k3j4h2\", ext=\"hello\"" ]
+        |> List.mapi (fun i (attr, header) ->
+            testCaseAsync (sprintf "%i" i) <| async {
+              let! res =
+                { ``method``    = GET
+                  uri           = Uri "http://example.com:8080/resource/4?filter=a"
+                  authorisation = header
+                  payload       = None
+                  host          = None
+                  port          = None
+                  contentType   = None }
+                |> authenticate { settings with localClockOffset = ts 1353788437L - clock.Now }
+              ensureErr res |> function
+              | MissingAttribute actualAttr ->
+                Expect.equal (actualAttr) (attr) "attr"
+              | err ->
+                Tests.failtestf "wrong error, expected FaultyAuthorizationHeader, got '%A'" err
+            }
+        )
+    ]
 
-    testCase "parses a valid authentication header (sha256, ext=ignore-payload)" <| fun _ ->
+    testCaseAsync "parses a valid authentication header (sha256, ext=ignore-payload)" <| async {
       let uri = Uri "https://example.net/somewhere/over/the/rainbow"
       let clientData =
         { credentials        = credsInner "2"
@@ -313,15 +342,16 @@ let server =
         |> Client.header uri POST
         |> ensureValue
 
-      { ``method``    = POST
-        uri           = uri
-        authorisation = clientData.header
-        payload       = Some ([| 1uy; 2uy; 3uy |]) // this is what the server impl will feed
-        host          = None
-        port          = None
-        contentType   = Some "text/plain" }
-      |> authenticate settings
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
-    ]
+      let! res =
+        { ``method``    = POST
+          uri           = uri
+          authorisation = clientData.header
+          payload       = Some ([| 1uy; 2uy; 3uy |]) // this is what the server impl will feed
+          host          = None
+          port          = None
+          contentType   = Some "text/plain" }
+        |> authenticate settings
+      let _, _, user = ensureValue res
+      Expect.equal user "steve" "return value"
+    }
+  ]

@@ -145,7 +145,7 @@ let settings =
     allowedClockSkew = Duration.FromMilliseconds 300L
     localClockOffset = ts 1356420407232L - clock.Now
     nonceValidator   = Settings.nonceValidatorMem
-    credsRepo        = fun id -> Choice1Of2 (credsInner, "steve")
+    userRepo        = fun id -> async.Return (Choice1Of2 (credsInner, "steve"))
     useProxyHost     = false
     useProxyPort     = false }
 
@@ -172,194 +172,231 @@ let authentication =
       port       = None }
 
   testList "authentication" [
-    testCase "it should generate a bewit then succesfully authenticate it" <| fun _ ->
-      Server.authenticateBewit settings (bewitRequest id)
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (attrs.ext) (Some "some-app-data") "ext value"
-        Expect.equal (user) ("steve") "return value"
+    testCaseAsync "it should generate a bewit then succesfully authenticate it" <| async {
+      let! res = Server.authenticateBewit settings (bewitRequest id)
+      let attrs, _, user = ensureValue res
+      Expect.equal attrs.ext (Some "some-app-data") "ext value"
+      Expect.equal user ("steve") "return value"
+    }
 
-    testCase "it should generate a bewit calcMaccesfully authenticate it (no ext)" <| fun _ ->
-      Server.authenticateBewit
-        settings
-        (bewitRequest (fun x -> { x with BewitOptions.ext = None }))
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (user) ("steve") "return value"
+    testCaseAsync "it should generate a bewit calcMaccesfully authenticate it (no ext)" <| async {
+      let! res =
+        Server.authenticateBewit settings (bewitRequest (fun x ->
+          { x with BewitOptions.ext = None }))
+      let attrs, _, user = ensureValue res
+      Expect.equal (user) ("steve") "return value"
+    }
 
-    testCase "should successfully authenticate a request (last param)" <| fun _ ->
+    testCaseAsync "should successfully authenticate a request (last param)" <| async {
       uriBuilder.Query <- String.Join("&",
         [| uriParams
            "bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ" |])
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (attrs.ext) (Some "some-app-data") "ext value"
-        Expect.equal (user) ("steve") "return value"
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should successfully authenticate a request (first param)" <| fun _ ->
+      let attrs, _, user = ensureValue res
+      Expect.equal (attrs.ext) (Some "some-app-data") "ext value"
+      Expect.equal (user) ("steve") "return value"
+    }
+
+    testCaseAsync "should successfully authenticate a request (first param)" <| async {
       uriBuilder.Query <- String.Join("&",
         [| "bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ"
            uriParams|] )
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (attrs.ext) (Some "some-app-data") "return value"
-        Expect.equal (user) ("steve") "return value"
 
-    testCase "should successfully authenticate a request (only param)" <| fun _ ->
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
+      let attrs, _, user = ensureValue res
+      Expect.equal attrs.ext (Some "some-app-data") "return value"
+      Expect.equal user "steve" "return value"
+    }
+
+    testCaseAsync "should successfully authenticate a request (only param)" <| async {
       uriBuilder.Query <-
         "bewit=MTIzNDU2XDEzNTY0MjA3MDdcSWYvYzNYOVdTYmc5a1RZUlJHbWdwZHBGYnlkdm0wZVY4ZkVGVnNjcFdTOD1cc29tZS1hcHAtZGF0YQ"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureValue
-      |> fun (attrs, _, user) ->
-        Expect.equal (attrs.ext) (Some "some-app-data") "return value"
-        Expect.equal (user) ("steve") "return value"
 
-    testCase "should fail on method other than GET" <| fun _ ->
-      { ``method`` = POST
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | WrongMethodError _ -> ()
-      | err -> Tests.failtestf "wrong error, expected WrongMethodError, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on empty bewit" <| fun _ ->
+      let attrs, _, user = ensureValue res
+      Expect.equal (attrs.ext) (Some "some-app-data") "return value"
+      Expect.equal (user) ("steve") "return value"
+    }
+
+    testCaseAsync "should fail on method other than GET" <| async {
+      let! res =
+        { ``method`` = POST
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
+      
+      ensureErr res |> function
+      | WrongMethodError _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected WrongMethodError, got '%A'" err
+    }
+
+    testCaseAsync "should fail on empty bewit" <| async {
       uriBuilder.Query <- "bewit="
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | BadArguments _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on missing bewit" <| fun _ ->
+      ensureErr res |> function
+      | BadArguments _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+    }
+
+    testCaseAsync "should fail on missing bewit" <| async {
       uriBuilder.Query <- String.Empty
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | DecodeError _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on bewit's base64 data being faulty" <| fun _ ->
+      ensureErr res |> function
+      | DecodeError _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+    }
+
+    testCaseAsync "should fail on bewit's base64 data being faulty" <| async {
       uriBuilder.Query <-
         "bewit=XDQ1NTIF0YäQ"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | DecodeError _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BadArguments for bas base64, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on empty bewit attribute" <| fun _ ->
+      ensureErr res |> function
+      | DecodeError _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BadArguments for bas base64, got '%A'" err
+    }
+
+    testCaseAsync "should fail on empty bewit attribute" <| async {
       uriBuilder.Query <- "bewit=YVxcY1xk"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | InvalidAttribute _ -> ()
-      | err -> Tests.failtest "error, expected InvalidAttribute, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on invalid bewit structure" <| fun _ ->
+      ensureErr res |> function
+      | InvalidAttribute _ ->
+        ()
+      | err ->
+        Tests.failtest "error, expected InvalidAttribute, got '%A'" err
+    }
+
+    testCaseAsync "should fail on invalid bewit structure" <| async {
       uriBuilder.Query <- "bewit=abc"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | BadArguments _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
+      ensureErr res |> function
+      | BadArguments _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+    }
 
-    testCase "should fail on invalid bewit" <| fun _ ->
+    testCaseAsync "should fail on invalid bewit" <| async {
       Tests.skiptest "Error not handled yet"
       uriBuilder.Query <- "bewit=*"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | BadArguments _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
+      ensureErr res |> function
+      | BadArguments _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BadArguments, got '%A'" err
+    }
 
-    testCase "should fail on missing bewit id attribute" <| fun _ ->
+    testCaseAsync "should fail on missing bewit id attribute" <| async {
       uriBuilder.Query <-
         "bewit=XDQ1NTIxNDc2MjJcK0JFbFhQMXhuWjcvd1Nrbm1ldGhlZm5vUTNHVjZNSlFVRHk4NWpTZVJ4VT1cc29tZS1hcHAtZGF0YQ"
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | InvalidAttribute _ -> ()
-      | err -> Tests.failtestf "wrong error, expected InvalidAttribute, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
+      ensureErr res |> function
+      | InvalidAttribute _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected InvalidAttribute, got '%A'" err
+    }
 
-    testCase "should fail on expired access" <| fun _ ->
+    testCaseAsync "should fail on expired access" <| async {
       uriBuilder.Query <- String.Join("&",
         [|uriParams ;
           "bewit=MTIzNDU2XDEzNTY0MjA0MDdcS1Eyb2htc1hEMjFpZDFONGNqU2hBUmw5VE9XZVFyQVVsL3QzbnFmdlBpTT1cc29tZS1hcHAtZGF0YQ" |])
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit settings
-      |> ensureErr
-      |> function
-      | BewitTtlExpired _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BewitTtlExpired, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit settings
 
-    testCase "should fail on credentials function error" <| fun _ ->
+      ensureErr res |> function
+      | BewitTtlExpired _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BewitTtlExpired, got '%A'" err
+    }
+
+    testCaseAsync "should fail on credentials function error" <| async {
       uriBuilder.Query <- String.Join("&",
         [| "bewit=MTIzNDU2XDEzNTY0MjA3MDdcbHRyeXMxbUFxemErbHhhaGxVRUJTTUdURlFrQ3Z3c1ZYQzFZV210M2dqMD1cc29tZS1hcHAtZGF0YQ"
            uriParams |])
-      { ``method`` = GET
-        uri        = uriBuilder.Uri
-        host       = None
-        port       = None }
-      |> Server.authenticateBewit {settings with credsRepo = (fun id -> (CredsError.Other "Boom!") |> Choice2Of2 )}
-      |> ensureErr
-      |> function
-      | BewitError.CredsError _ -> ()
-      | err -> Tests.failtestf "wrong error, expected BewitError.CredsError, got '%A'" err
+      let! res =
+        { ``method`` = GET
+          uri        = uriBuilder.Uri
+          host       = None
+          port       = None }
+        |> Server.authenticateBewit
+            { settings with
+                userRepo = (fun id -> CredsError.Other "Boom!" |> Choice2Of2 |> async.Return ) }
 
-    testCase "should fail on credentials function error with credentials" <| fun _ ->
-      Tests.skiptest "not implemented"
-    testCase "should fail on null credentials function response" <| fun _ ->
-      Tests.skiptest "not implemented"
-    testCase "should fail on invalid credentials function response" <| fun _ ->
-      Tests.skiptest "not implemented"
-    testCase "should fail on invalid credentials function response (unknown algorithm)" <| fun _ ->
-      Tests.skiptest "not implemented"
+      ensureErr res |> function
+      | BewitError.CredsError _ ->
+        ()
+      | err ->
+        Tests.failtestf "wrong error, expected BewitError.CredsError, got '%A'" err
+    }
   ]

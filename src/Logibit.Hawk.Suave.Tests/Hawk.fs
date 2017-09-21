@@ -38,9 +38,10 @@ module Helpers =
 
   let normalSettings =
     { Settings.empty<User> () with
-        credsRepo = fun id ->
+        userRepo = fun id ->
           (credsInner id, { homepage = Uri("https://logibit.se"); realName = "Henrik" })
-          |> Choice1Of2 }
+          |> Choice1Of2
+          |> async.Return }
 
   let proxySettings =
     { normalSettings with useProxyPort = true

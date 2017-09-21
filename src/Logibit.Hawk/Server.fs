@@ -138,59 +138,49 @@ module internal Impl =
     else
       Choice2Of2 (String.Concat [ "String '"; subject; "' doesn't start with; "; literalPrefix ])
 
-  let validateCredentials credsRepo (attrs : HawkAttributes) =
-    credsRepo attrs.id
-    >@> AuthError.ofCredsError
-    >!> fun cs -> attrs, cs
+  let validateCredentials (userRepo: UserRepo<'user>) (uid: string) =
+    userRepo uid |> Async.map (Choice.mapSnd AuthError.ofCredsError)
 
-  let validateMac req (attrs, cs) =
+  let validateMac req cs attrs =
     let norm, calcMac =
-      FullAuth.ofHawkAttrs (fst cs) req.host req.port attrs
+      FullAuth.ofHawkAttrs cs req.host req.port attrs
       |> Crypto.calcNormMac "header"
     if String.equalsConstantTime calcMac attrs.mac then
-      Choice1Of2 (attrs, cs)
+      Choice.create ()
     else
-      Choice2Of2 (BadMac (attrs.mac, calcMac, norm))
+      Choice.createSnd (BadMac (attrs.mac, calcMac, norm))
 
-  let validatePayload req ((attrs : HawkAttributes), cs) =
+  let validatePayload req (creds: Credentials) (attrs: HawkAttributes) =
     match req.payload with
     | None ->
-      Choice1Of2 (attrs, cs)
+      Choice.create ()
     | Some payload when attrs.ext |> Option.fold (fun s t -> t.Contains("ignore-payload")) false ->
-      Choice1Of2 (attrs, cs)
+      Choice.create ()
     | Some payload ->
-      let creds : Credentials = fst cs
       Choice.ofOption (MissingAttribute "hash") attrs.hash
       >>= fun attrsHash ->
         let calcHash = Crypto.calcPayloadHashString req.payload creds.algorithm req.contentType
         if String.equalsConstantTime calcHash attrsHash then
-          Choice1Of2 (attrs, cs)
+          Choice.create ()
         else
-          Choice2Of2 (BadPayloadHash(attrsHash, calcHash))
+          Choice.createSnd (BadPayloadHash(attrsHash, calcHash))
 
-  let validateNonce validator ((attrs : HawkAttributes), cs) =
-    validator (attrs.nonce, attrs.ts)
-    >!> fun _ -> attrs, cs
-    >@> AuthError.ofNonceError
+  let validateNonce validator (attrs: HawkAttributes): Choice<unit, _> =
+    validator (attrs.nonce, attrs.ts) >@> AuthError.ofNonceError
 
-  let validateTimestamp (now : Instant)
-                        (allowedTsSkew : Duration)
-                        localOffset // for err only
-                        (({ ts = givenTs } as attrs), cs) =
-    if givenTs - now <= allowedTsSkew then
-      Choice1Of2 (attrs, cs)
+  let validateTimestamp (now: Instant) (allowedTsSkew: Duration) localOffset (attrs: HawkAttributes) =
+    if attrs.ts - now <= allowedTsSkew then
+      Choice.create ()
     else
-      Choice2Of2 (StaleTimestamp (givenTs, now, localOffset))
+      Choice.createSnd (StaleTimestamp (attrs.ts, now, localOffset))
 
-  let logFailure (logger : Logger) timestamp (err : AuthError) =
-    logger.info (fun level ->
+  let logFailure (logger: Logger) timestamp (err: AuthError): Async<unit> =
+    logger.infoWithBP (fun level ->
     { value     = Event "Authenticate Failure"
       level     = level
       name      = "Logibit.Hawk.Server.authenticate".Split('.')
       fields      = [ "error", box err ] |> Map.ofList
       timestamp = Instant.toEpochNanos timestamp })
-
-  let mapResult (a, (b, c)) = a, b, c
 
 open Impl
 
@@ -212,9 +202,8 @@ let parseHeader (header : string) =
         memo
       ) Map.empty)
 
-let authenticate (s : Settings<'a>)
-                 (req : HeaderRequest)
-                 : Choice<HawkAttributes * Credentials * 'a, AuthError> =
+let authenticate (s: Settings<'user>) (req: HeaderRequest)
+                 : Async<Choice<HawkAttributes * Credentials * 'user, AuthError>> =
   let now = s.clock.Now
   let nowWithOffset = s.clock.Now + s.localClockOffset // before computing
 
@@ -243,8 +232,10 @@ let authenticate (s : Settings<'a>)
   let reqAttr m = Parse.reqAttr MissingAttribute Impl.toAuthErr m
   let optAttr m = Parse.optAttr m
 
-  parseHeader req.authorisation // parse header, unknown header values so far
-  >>= fun header ->
+  asyncChoice (logFailure s.logger now) {
+    let! header = parseHeader req.authorisation 
+    // parse header, unknown header values so far
+    let! attrs =
       Writer.lift (HawkAttributes.create req.``method`` req.uri)
       >>~ reqAttr header "id" (Parse.id, HawkAttributes.id_)
       >>= reqAttr header "ts" (Parse.unixSecInstant, HawkAttributes.ts_)
@@ -254,14 +245,15 @@ let authenticate (s : Settings<'a>)
       >>= optAttr header "ext" (Parse.id, HawkAttributes.ext_)
       >>= optAttr header "app" (Parse.id, HawkAttributes.app_)
       >>= optAttr header "dlg" (Parse.id, HawkAttributes.dlg_)
-      >!> Writer.``return``
-      >>= validateCredentials s.credsRepo
-      >>= validateMac req
-      >>= validatePayload req
-      >>= validateNonce s.nonceValidator
-      >>= validateTimestamp nowWithOffset s.allowedClockSkew s.localClockOffset
-      >!> mapResult
-      >>@ logFailure s.logger now
+      >!> Writer.unwrap
+
+    let! credentials, user = validateCredentials s.userRepo attrs.id
+    do! validateMac req credentials attrs
+    do! validatePayload req credentials attrs
+    do! validateNonce s.nonceValidator attrs
+    do! validateTimestamp nowWithOffset s.allowedClockSkew s.localClockOffset attrs
+    return attrs, credentials, user
+  }
 
 /// Authenticate payload hash - used when payload cannot be provided
 /// during authenticate()
