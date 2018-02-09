@@ -203,7 +203,7 @@ let authenticate (s: Settings<'TPrincipal>) (req: QueryRequest)
   let nowWithOffset = s.clock.GetCurrentInstant() + s.localClockOffset // before computing
 
   s.logger.verbose (fun level ->
-    { value   = Event "Authenticate Bewit for {uri}"
+    { value   = Event "Authenticate Bewit"
       level   = level
       name    = "Logibit.Hawk.Bewit.authenticate".Split('.')
       fields  =
