@@ -1,3 +1,6 @@
+## v6.0.3
+* More packaging
+
 ## v6.0.2
 * Fix pack script, gen xmldoc files.
 

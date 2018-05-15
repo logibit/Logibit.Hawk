@@ -6,7 +6,7 @@ open System.Reflection
 [<assembly: AssemblyDescriptionAttribute("A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.")>]
 [<assembly: AssemblyVersionAttribute("6.0.2")>]
 [<assembly: AssemblyFileVersionAttribute("6.0.2")>]
-[<assembly: AssemblyMetadataAttribute("Commit","9b3fd1")>]
+[<assembly: AssemblyMetadataAttribute("Commit","79d171")>]
 do ()
 
 module internal AssemblyVersionInformation =
@@ -14,4 +14,4 @@ module internal AssemblyVersionInformation =
     let [<Literal>] AssemblyDescription = "A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft."
     let [<Literal>] AssemblyVersion = "6.0.2"
     let [<Literal>] AssemblyFileVersion = "6.0.2"
-    let [<Literal>] AssemblyMetadata_Commit = "9b3fd1"
+    let [<Literal>] AssemblyMetadata_Commit = "79d171"
