@@ -1,0 +1,25 @@
+type project
+id Hawk.Suave
+authors Henrik Feldt
+owners Henrik Feldt
+description A F# implementation of the Hawk authentication protocol. Few dependencies. No cruft.
+licenseUrl https://opensource.org/licenses/Apache-2.0
+iconUrl https://raw.githubusercontent.com/logibit/Logibit.Hawk/master/tools/hawk.png
+includePdb true
+files
+  bin/Release/net471/Logibit.Hawk.Suave.dll => lib/net471
+  bin/Release/net471/Logibit.Hawk.Suave.xml => lib/net471
+  bin/Release/net471/Logibit.Hawk.Suave.pdb => lib/net471
+  bin/Release/netstandard2.0/Logibit.Hawk.Suave.dll => lib/netstandard2.0
+  bin/Release/netstandard2.0/Logibit.Hawk.Suave.xml => lib/netstandard2.0
+  bin/Release/netstandard2.0/Logibit.Hawk.Suave.pdb => lib/netstandard2.0
+dependencies
+  framework: net471
+    NodaTime ~> 2
+    Suave ~> 2.4
+    FSharp.Core ~> 4
+  framework: netstandard20
+    NodaTime ~> 2
+    Suave ~> 2.4
+    FSharp.Core ~> 4
+

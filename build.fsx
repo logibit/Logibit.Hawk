@@ -44,8 +44,8 @@ let inline withWorkDir wd =
 let inline dotnetSimple arg = DotNet.Options.lift install.Value arg
 
 let projects =
-  !! "Logibit.*/*.fsproj"
-  -- "*.Tests/*.fsproj"
+  !! "src/**/*.fsproj"
+  -- "src/*.Tests/*.fsproj"
 
 Target.create "Clean" <| fun _ ->
   !! "src/**/bin"
@@ -137,6 +137,7 @@ Target.create "Release" <| fun _ ->
 open Fake.Core.TargetOperators
 
 "CheckEnv"
+  ==> "Push"
   ==> "Release"
 
 "Clean"
@@ -146,6 +147,7 @@ open Fake.Core.TargetOperators
   ==> "Tests"
   ==> "IntegrationTests"
   ==> "Pack"
+  ==> "Push"
   ==> "Release"
 
 Target.runOrDefault "Tests"

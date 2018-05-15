@@ -1,6 +1,10 @@
 ﻿[<AutoOpen>]
 module internal Logibit.Hawk.Prelude
 
+open System.Runtime.CompilerServices
+[<assembly: InternalsVisibleTo("Logibit.Hawk.Tests")>]
+do ()
+
 module Hoek =
 
   let parseContentType = function

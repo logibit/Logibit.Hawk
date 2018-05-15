@@ -3,6 +3,7 @@
   <PropertyGroup>
     <AssemblyName>Logibit.Hawk</AssemblyName>
     <TargetFrameworks>net471;netstandard2.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" Condition="Exists('AssemblyInfo.fs')" />

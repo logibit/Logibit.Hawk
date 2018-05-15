@@ -1,6 +1,7 @@
 paket.exe
 .fake/
 .idea/
+pkg/
 bin/
 obj/
 .DS_Store

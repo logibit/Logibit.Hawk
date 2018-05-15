@@ -1,15 +1,26 @@
-version: 4.0.{build}
+image:
+  - Visual Studio 2015
+  - Visual Studio 2017
 
 build_script:
- - cmd: gem sources -r https://rubygems.org/
- - cmd: gem install bundler --no-ri --no-rdoc --source https://rubygems.org/
- - cmd: bundle install
- - cmd: bundle exec rake
- 
+  - cmd: build.cmd --target Pack
+
+init:
+  - git config --global core.autocrlf input
+
+environment:
+  matrix:
+   - arch: "x86"
+     MSBUILD_PLATFORM: x86
+     PATH: '%USERPROFILE%\.nuget\packages\libuv\1.10.0\runtimes\win-x86\native;%PATH%'
+   - arch: "x64"
+     MSBUILD_PLATFORM: "Any CPU"
+     PATH: '%USERPROFILE%\.nuget\packages\libuv\1.10.0\runtimes\win-x64\native;%PATH%'
+
 artifacts:
- - path: build\pkg\*.nupkg 
+ - path: pkg\*.nupkg
 
 test:  off
 
 nuget:
-  project_feed: true
+project_feed: true
