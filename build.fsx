@@ -91,7 +91,7 @@ Target.create "Pack" <| fun _ ->
     { p with OutputPath = pkg
              IncludeReferencedProjects = true
              Symbols = true
-             ProjectUrl = "https://suave.io"
+             ProjectUrl = "https://github.com/logibit/Logibit.Hawk"
              Version = release.SemVer.ToString()
              WorkingDir = Path.GetDirectoryName project
              ReleaseNotes = String.Join("\n", release.Notes)
@@ -111,7 +111,7 @@ Target.create "CheckEnv" <| fun _ ->
   ignore (Environment.environVarOrFail "GITHUB_TOKEN")
 
 Target.create "Release" <| fun _ ->
-  let gitOwner, gitName = "logibit", "suave"
+  let gitOwner, gitName = "logibit", "Logibit.Hawk"
   let gitOwnerName = gitOwner + "/" + gitName
   let remote =
       Git.CommandHelper.getGitResult "" "remote -v"
