@@ -1,4 +1,5 @@
 paket.exe
+.fake/
 .idea/
 bin/
 obj/
