@@ -7,4 +7,5 @@ open Logibit.Hawk
 
 [<EntryPoint>]
 let main argv =
-  runTestsInAssembly defaultConfig argv
+  let config = { defaultConfig with ``parallel`` = false }
+  runTestsInAssembly config argv

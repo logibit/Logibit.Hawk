@@ -9,19 +9,29 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{7B11D8
 		.\paket.lock = .\paket.lock
 	EndProjectSection
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk", "src\Logibit.Hawk\Logibit.Hawk.fsproj", "{3D94A484-8780-4267-9024-FFC5E44A971A}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logibit.Hawk", "src\Logibit.Hawk\Logibit.Hawk.fsproj", "{3D94A484-8780-4267-9024-FFC5E44A971A}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Tests", "src\Logibit.Hawk.Tests\Logibit.Hawk.Tests.fsproj", "{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logibit.Hawk.Tests", "src\Logibit.Hawk.Tests\Logibit.Hawk.Tests.fsproj", "{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Suave", "src\Logibit.Hawk.Suave\Logibit.Hawk.Suave.fsproj", "{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logibit.Hawk.Suave", "src\Logibit.Hawk.Suave\Logibit.Hawk.Suave.fsproj", "{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Suave.Tests", "src\Logibit.Hawk.Suave.Tests\Logibit.Hawk.Suave.Tests.fsproj", "{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logibit.Hawk.Suave.Tests", "src\Logibit.Hawk.Suave.Tests\Logibit.Hawk.Suave.Tests.fsproj", "{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{E73AC0E5-498F-46F8-8EB7-4954A5DA2127}"
 	ProjectSection(SolutionItems) = preProject
 		.\README.md = .\README.md
 		.\LICENSE.md = .\LICENSE.md
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{1546D536-62AF-4E69-A9B3-58B5970DF701}"
+ProjectSection(SolutionItems) = preProject
+	RELEASE_NOTES.md = RELEASE_NOTES.md
+	README.md = README.md
+	build.sh = build.sh
+	build.fsx = build.fsx
+	build.cmd = build.cmd
+	appveyor.yml = appveyor.yml
+EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
