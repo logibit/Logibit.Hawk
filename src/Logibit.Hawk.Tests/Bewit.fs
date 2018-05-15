@@ -1,4 +1,4 @@
-﻿module Logibit.Hawk.Tests.Uri
+﻿module Logibit.Hawk.Tests.Bewit
 
 open System
 open System.Net
@@ -21,12 +21,10 @@ type DebugPrinter (name : string) =
   interface Logger with
     member x.name = [| name |]
     member x.log level msg =
-      Debug.WriteLine (sprintf "%s: %A" name msg)
-      Async.result ()
+      async { Debug.WriteLine (sprintf "%s: %A" name msg) }
 
     member x.logWithAck level msgFactory =
-      Debug.WriteLine (sprintf "%s: %A" name (msgFactory level))
-      Async.result ()
+      async { Debug.WriteLine (sprintf "%s: %A" name (msgFactory level)) }
 
 let credsInner =
   { id        = "123456"
@@ -37,7 +35,7 @@ let logger = Logging.Targets.create Warn [| "Logibit"; "Hawk"; "Tests" |]
 
 [<Tests>]
 let ``bewit generation`` =
-  let seconds i = Duration.FromSeconds i
+  let seconds (i: int64) = Duration.FromSeconds i
 
   testList "Bewit.generate" [
     testCase "it returns a valid bewit value" <| fun _ ->
@@ -140,14 +138,14 @@ let ``parsing bewit parts`` =
       Tests.failtestf "should have been able to parse the four token components, got %A" err
 
 let settings =
-  { Settings.clock   = clock
-    logger           = logger
+  { Settings.clock = clock
+    logger = logger
     allowedClockSkew = Duration.FromMilliseconds 300L
     localClockOffset = ts 1356420407232L - clock.GetCurrentInstant()
-    nonceValidator   = Settings.nonceValidatorMem
-    userRepo        = fun id -> async.Return (Choice1Of2 (credsInner, "steve"))
-    useProxyHost     = false
-    useProxyPort     = false }
+    nonceValidator = Settings.nonceValidatorMem clock (Duration.FromMinutes 20.)
+    userRepo = fun id -> async.Return (Choice1Of2 (credsInner, "steve"))
+    useProxyHost = false
+    useProxyPort = false }
 
 [<Tests>]
 let authentication =
@@ -164,14 +162,14 @@ let authentication =
 
   let bewitRequest fInspect =
     uriBuilder.Query <- uriParams
-    let bewit = Bewit.genBase64Str uriBuilder.Uri (opts |> fInspect)
+    let bewit = Bewit.genBase64Str uriBuilder.Uri (fInspect opts)
     uriBuilder.Query <- String.Join("&", [| uriParams ; "bewit=" + bewit |])
     { ``method`` = GET
-      uri        = uriBuilder.Uri
-      host       = None
-      port       = None }
+      uri = uriBuilder.Uri
+      host = None
+      port = None }
 
-  testList "authentication" [
+  ftestList "authentication" [
     testCaseAsync "it should generate a bewit then succesfully authenticate it" <| async {
       let! res = Server.authenticateBewit settings (bewitRequest id)
       let attrs, _, user = ensureValue res
@@ -242,7 +240,7 @@ let authentication =
           host       = None
           port       = None }
         |> Server.authenticateBewit settings
-      
+
       ensureErr res |> function
       | WrongMethodError _ ->
         ()

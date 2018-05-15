@@ -12,8 +12,8 @@ open Logibit.Hawk.Types
 [<Literal>]
 let headerVersion = "1"
 
-let private initPayloadHash (algo : Algo) contentType =
-  let h = Hash.createSimple algo.DotNetString (String.Concat ["hawk."; headerVersion; ".payload\n" ])
+let private initPayloadHash (algo: Algo) contentType =
+  let h = Hash.createSimple (algo.create ()) (String.Concat ["hawk."; headerVersion; ".payload\n" ])
   Hash.updateStr h (String.Concat [Hoek.parseContentType contentType; "\n"])
   h
 
@@ -22,11 +22,11 @@ let private initPayloadHash (algo : Algo) contentType =
 //  payload |> Option.orDefault [||] |> Hash.update hash
 //  "\n" |> Hash.updateFinalStr hash
 
-let calcPayloadHash (payload : _ option) (algo : Algo) contentType =
-  let hasher = HashAlgorithm.Create algo.DotNetString
+let calcPayloadHash (payload: _ option) (algo: Algo) contentType =
+  let hasher = algo.create ()
   [| yield! String.Concat [ "hawk."; headerVersion; ".payload\n"
                             Hoek.parseContentType contentType; "\n" ] |> UTF8.bytes
-     yield! payload |> Option.orDefault [||]
+     yield! payload |> Option.defaultValue [||]
      yield! "\n" |> UTF8.bytes
   |]
   |> hasher.ComputeHash
@@ -36,8 +36,8 @@ let calcPayloadHashString payload algo contentType =
 
 /// Create a base64 encoded hmac signature of a UTF-8 encoding of the concatenated strings,
 /// i.e. base64(hmac(K, body))
-let createHmac (algo : Algo) (key : string) (body : string) =
-  let hmac = HMAC.Create algo.DotNetHmacString
+let createHmac (algo: Algo) (key: string) (body: string) =
+  let hmac = algo.createHMAC()
   hmac.Key <- Encoding.UTF8.GetBytes key
   let buf = body |> Encoding.UTF8.GetBytes
   hmac.ComputeHash buf |> Convert.ToBase64String
@@ -55,7 +55,7 @@ let genNormStr (``type`` : string) (opts : FullAuth) =
       yield sprintf "%s\n" opts.resource
       yield sprintf "%s\n" (String.toLowerInvariant opts.host)
       yield sprintf "%d\n" opts.port
-      yield sprintf "%s\n" (opts.hash |> Option.orDefault "")
+      yield sprintf "%s\n" (opts.hash |> Option.defaultValue "")
       match opts.ext with
       | None -> ()
       | Some ext ->

@@ -1,6 +1,7 @@
 module Logibit.Hawk.Types
 
 open System
+open System.Security.Cryptography
 open NodaTime
 open Logibit.Hawk.Logging
 
@@ -33,18 +34,21 @@ type Algo =
   | SHA256
   | SHA384
   | SHA512
-  member x.DotNetString =
+  /// Create a new HashAlgorithm
+  member x.create () =
     match x with
-    | SHA1 -> "SHA1"
-    | SHA256 -> "SHA256"
-    | SHA384 -> "SHA384"
-    | SHA512 -> "SHA512"
-  member x.DotNetHmacString =
+    | SHA1 -> SHA1.Create() :> HashAlgorithm
+    | SHA256 -> SHA256.Create() :> _
+    | SHA384 -> SHA384.Create() :> _
+    | SHA512 -> SHA512.Create() :> _
+
+  /// Create a new HMAC
+  member x.createHMAC () =
     match x with
-    | SHA1 -> "HMACSHA1"
-    | SHA256 -> "HMACSHA256"
-    | SHA384 -> "HMACSHA384"
-    | SHA512 -> "HMACSHA512"
+    | SHA1 -> new HMACSHA1() :> HMAC
+    | SHA256 -> new HMACSHA256() :> HMAC
+    | SHA384 -> new HMACSHA384() :> HMAC
+    | SHA512 -> new HMACSHA512() :> HMAC
 
 /// A credential structure which has all fields required - this contains the private key too.
 type Credentials =
@@ -252,8 +256,8 @@ module FullAuth =
       nonce        = a.nonce
       ``method``   = a.``method``
       resource     = a.uri.PathAndQuery
-      host         = host |> Option.orDefault a.uri.Host
-      port         = port |> Option.orDefault (uint16 a.uri.Port)
+      host         = host |> Option.defaultValue a.uri.Host
+      port         = port |> Option.orDefault (fun () -> uint16 a.uri.Port)
       hash         = a.hash
       ext          = a.ext
       app          = a.app
@@ -265,8 +269,8 @@ module FullAuth =
       nonce        = a.nonce
       ``method``   = a.``method``
       resource     = a.uri.PathAndQuery
-      host         = host |> Option.orDefault a.uri.Host
-      port         = port |> Option.orDefault (uint16 a.uri.Port)
+      host         = host |> Option.defaultValue a.uri.Host
+      port         = port |> Option.orDefault (fun () -> uint16 a.uri.Port)
       hash         = None
       ext          = a.ext
       app          = None
@@ -331,61 +335,78 @@ type Settings<'user> =
     useProxyPort: bool }
 
 module Settings =
+  open System.Collections.Generic
   open System.Collections.Concurrent
-  open System.Runtime.Caching
 
   /// This nonce validator lets all nonces through, boo yah!
   let nonceValidatorNoop = fun _ -> Choice1Of2 ()
 
-  // TODO: parametise the cache
-  // TODO: parametise the clock
-  let nonceValidatorMem =
-    let cache = MemoryCache.Default
-    fun (nonce, ts : Instant) ->
-      let in20min = DateTimeOffset.UtcNow.AddMinutes(20.)
-      // returns: if a cache entry with the same key exists, the existing cache
-      // entry; otherwise, null.
-      match cache.AddOrGetExisting(nonce, ts, in20min) |> box with
-      | null ->
-        Choice1Of2 ()
+  let private tsem = obj ()
 
-      | lastSeen ->
+  let private runTimeouts (timeouts: Queue<_>) (cache: ConcurrentDictionary<string, Instant>) (now: Instant) =
+    /// Iterate until the head is due later than now.
+    let rec iter () =
+      if timeouts.Count = 0 then () else
+      let struct (nonce, timeout) = timeouts.Peek()
+      if timeout > now then () else
+      ignore (timeouts.Dequeue())
+      ignore (cache.TryRemove nonce)
+      iter ()
+    lock tsem iter
+
+  let nonceValidatorMem (clock: IClock) (keepFor: Duration) =
+    // We will use a queue, because it's O(1) on dequeue/peek and since the duration is a constant for the
+    // life time of this validator, we know the head is due closest in time.
+    let timeouts = Queue<_>()
+    // The cache stores the nonces and when they were added
+    let cache = ConcurrentDictionary<_, _>()
+
+    fun (nonce: string, ts: Instant) ->
+      let now = clock.GetCurrentInstant()
+      do runTimeouts timeouts cache now
+      // https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2.tryadd?view=netframework-4.7.1
+      // returns true if the nonce was successfully added
+      if cache.TryAdd (nonce, now) then
+        do timeouts.Enqueue (struct (nonce, now + keepFor))
+        Choice1Of2 ()
+      else
         Choice2Of2 AlreadySeen
 
   /// Create a new empty settings; beware that it will always return that
   /// the credentials for the id given were not found.
-  let empty<'a> () : Settings<'a> =
-    { clock              = NodaTime.SystemClock.Instance
-      logger             = Targets.create Warn [| "Logibit"; "Hawk" |]
-      allowedClockSkew   = Duration.FromSeconds 60L
-      localClockOffset   = Duration.Zero
-      nonceValidator     = nonceValidatorMem
-      userRepo          = fun _ -> async.Return (Choice2Of2 CredentialsNotFound)
-      useProxyHost       = false
-      useProxyPort       = false }
+  let empty<'a>(): Settings<'a> =
+    let clock = SystemClock.Instance
+    { clock = clock
+      logger = Targets.create Warn [| "Logibit"; "Hawk" |]
+      allowedClockSkew = Duration.FromSeconds 60L
+      localClockOffset = Duration.Zero
+      nonceValidator = nonceValidatorMem clock (Duration.FromMinutes 20.)
+      userRepo = fun _ -> async.Return (Choice2Of2 CredentialsNotFound)
+      useProxyHost = false
+      useProxyPort = false }
 
 /// The pieces of the request that the `authenticateBewit` method cares about.
 type QueryRequest =
   { /// Required method for the request
-    ``method``    : HttpMethod
+    ``method``: HttpMethod
     /// Required uri for the request
-    uri           : Uri
+    uri: Uri
     /// Optional host name override (from uri) - useful if your web server
     /// is behind a proxy and you can't easily feed a 'public' URI to the
     /// `authenticate` function.
-    host          : string option
+    host: string option
     /// Optional port number override (from uri) - useful if your web
     /// server is behind a proxy and you can't easily feed the 'public'
     /// URI to the `authenticate` function.
-    port          : Port option }
+    port: Port option }
 
 type Bewit = string
 
 /// Errors that can come from a validation pass of the Hawk Bewit header.
 type BewitAuthError =
   /// There was a problem when validating the credentials of the principal
-  | CredsError of CredsError
-  | Other of string
+  | CredsError of error:CredsError
+  | Other of error:string
   override x.ToString() =
     match x with
     | Other s -> s

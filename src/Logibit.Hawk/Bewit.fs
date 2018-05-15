@@ -112,7 +112,7 @@ module internal Impl =
 
   let toBewitError key = function
     | ParseError msg -> InvalidAttribute (key, msg)
-  
+
   let validateCredentials (userRepo: UserRepo<'user>) uid: Async<Choice<Credentials * 'user, BewitError>> =
     userRepo uid |> Async.map (Choice.mapSnd BewitError.ofCredsError)
 
@@ -144,15 +144,15 @@ module internal Impl =
     req.uri.Query.Split '&'
     |> Array.tryFind (fun x -> x.Contains("bewit="))
     |> Option.map (fun x -> x.Substring(x.IndexOf("bewit=") + "bewit=".Length))
-    |> Choice.ofOption (DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
+    |> Choice.ofOption (fun () -> DecodeError (sprintf "Could not decode from base64. Uri '%O'" req.uri))
     |> Choice.bind (ModifiedBase64Url.decode >> Choice.mapSnd DecodeError)
 
   let logFailure (logger: Logger) timestamp (err: BewitError): Async<unit> =
     logger.infoWithBP (fun level ->
-      { value     = Event "Authenticate Failure"
-        level     = level
-        name      = "Logibit.Hawk.Bewit.authenticate".Split('.')
-        fields    = [ "error", box err ] |> Map.ofList
+      { value = Event "Authenticate Failure"
+        level = level
+        name = "Logibit.Hawk.Bewit.authenticate".Split('.')
+        fields = Map [ "error", box err ]
         timestamp = Instant.toEpochNanos timestamp })
 
   let mapResult (a, (b, c)) = a, b, c
@@ -173,9 +173,9 @@ let gen (uri : Uri) (opts : BewitOptions) =
     |> BewitOptions.toAuth nowWithOffset uri exp
     |> Crypto.calcNormMac "bewit"
   let exp = exp.ToUnixTimeTicks() / NodaConstants.TicksPerSecond |> string
-  let ext = opts.ext |> Option.orDefault ""
+  let ext = opts.ext |> Option.defaultValue ""
   opts.logger.verbose (fun level ->
-    { value   = Event "Generate Bewit"
+    { value   = Event "Generate Bewit; id={id}, exp={exp}, mac={mac}, ext={ext}."
       level   = level
       name    = "Logibit.Hawk.Bewit.gen".Split('.')
       fields  = Map

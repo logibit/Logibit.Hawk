@@ -1,14 +1,32 @@
-source https://www.nuget.org/api/v2
-framework net461
+source https://api.nuget.org/v3/index.json
+framework net471, netcoreapp2.0, netstandard2.0
+storage none
 
-nuget FsCheck
-nuget FSharp.Core
 nuget Expecto
 nuget Expecto.FsCheck
-nuget NodaTime ~> 1
-nuget NuGet.CommandLine
+nuget FSharp.Core !~> 4.3.4
+nuget FsCheck
+nuget Http.fs
+nuget NodaTime
 nuget Suave
-nuget Suave.Testing
+nuget System.Net.Http = 4.3.3
 
-github haf/YoLo YoLo.fs
-github logary/logary src/Logary.Facade/Facade.fs
+group Build
+  source https://api.nuget.org/v3/index.json
+  framework: netstandard2.0
+  storage:none
+
+  clitool dotnet-fake
+  nuget NETStandard.Library.NETFramework
+  nuget Fake.DotNet.Cli
+  nuget Fake.DotNet.Paket
+  nuget Fake.DotNet.AssemblyInfoFile
+  nuget Fake.DotNet.Testing.Expecto
+  nuget Fake.Api.Github
+  nuget Fake.Core.Target
+  nuget Fake.Core.Process
+  nuget Fake.Core.String
+  nuget Fake.Core.ReleaseNotes
+  nuget Fake.IO.FileSystem
+  nuget Fake.Tools.Git
+

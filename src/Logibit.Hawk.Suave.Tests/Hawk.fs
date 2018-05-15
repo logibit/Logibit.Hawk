@@ -25,13 +25,13 @@ module Helpers =
                 bindings = [ HttpBinding.createSimple HTTP "127.0.0.1" 8999 ] }
 
   let credsInner id =
-    { id        = id
-      key       = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
+    { id = id
+      key = "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn"
       algorithm = if id = "1" then SHA1 else SHA256 }
 
   type User =
-    { homepage : Uri
-      realName : string }
+    { homepage: Uri
+      realName: string }
 
   let req m data fReq fResp =
     reqResp m "/" "" data None System.Net.DecompressionMethods.None fReq fResp
@@ -54,6 +54,51 @@ module Helpers =
   let authed (attr, creds, user) =
     OK (sprintf "authenticated user '%s'" user.realName)
 
+
+  /// Sets the Authorization header on the System.Net.Http.HttpRequestMessage
+  /// instance. You need to open System.Net.Http to do interesting things, and
+  /// the actual value to return is in System.Net.Http.Headers.
+  let setAuthHeader (req: HttpRequestMessage) (headerData : HeaderData) =
+    let header = new AuthenticationHeaderValue("Hawk", headerData.parameter)
+    req.Headers.Authorization <- header
+    req
+
+
+  /// Sets the Bewit query param on the System.Net.Http.HttpRequestMessage
+  /// instance. You need to open System.Net.Http to do interesting things, and
+  /// the actual value to return is in System.Net.Http.Headers.
+  let setBewit (req : HttpRequestMessage) (bewit : string) =
+
+    let parse (q : string) =
+      q.Split('&')
+      |> Array.map (fun x -> x.Split('='))
+      |> Array.map (function
+          | xs when xs.Length = 1 -> xs.[0], None
+          | xs -> xs.[0], Some xs.[1])
+      |> List.ofArray
+
+    let add (k, v) (xs : _ list) =
+      (k, Some v) :: xs
+
+    let merge (vals : (string * string option) list) =
+      vals
+      |> List.filter (not << String.IsNullOrEmpty << fst)
+      |> List.map (fun (k, v) -> Encoding.encodeURIComponent k, (v |> Option.map Encoding.encodeURIComponent))
+      |> List.map (function
+          | k, Some v -> String.Concat [| k; "="; v|]
+          | k, None   -> String.Concat [| k; "=" |])
+      |> fun xs -> String.Join("&", xs)
+
+    let ub = UriBuilder req.RequestUri
+
+    ub.Query <-
+      parse req.RequestUri.Query
+      |> add ("bewit", bewit)
+      |> merge
+
+    req.RequestUri <- ub.Uri
+    req
+
 open Helpers
 
 [<Tests>]
@@ -65,9 +110,9 @@ let serverClientAuthentication =
   let setAuthHeader methd opts req =
     Client.header (Uri("http://127.0.0.1:8999/")) methd opts
     |> ensureAuthHeader
-    |> Client.setAuthHeader req
+    |> setAuthHeader req
 
-  let setBytes bs (req : HttpRequestMessage) =
+  let setBytes bs (req: HttpRequestMessage) =
     req.Content <- new System.Net.Http.ByteArrayContent(bs)
     req
   testList "client-server authentication" [
@@ -178,7 +223,7 @@ let bewitServerClientAuth =
 
   let setBewitQuery opts req =
     Client.bewit (Uri("http://127.0.0.1:8999/")) opts
-    |> Client.setBewit req
+    |> setBewit req
 
   testList "bewit client-server authentication" [
     testList "without proxy (defaults)" [
@@ -220,7 +265,7 @@ let bewitServerClientAuth =
 
         let requestf =
           setBewitQuery opts
-          >> (fun r ->
+          >> (fun (r: HttpRequestMessage) ->
             let ub = r.RequestUri |> UriBuilder
             ub.Host <- "localhost"
             r.RequestUri <- ub.Uri

@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{7B11D818-C87B-4943-867A-6CA34064B720}"
+	ProjectSection(SolutionItems) = preProject
+		.\paket.dependencies = .\paket.dependencies
+		.\paket.lock = .\paket.lock
+	EndProjectSection
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk", "src\Logibit.Hawk\Logibit.Hawk.fsproj", "{3D94A484-8780-4267-9024-FFC5E44A971A}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Tests", "src\Logibit.Hawk.Tests\Logibit.Hawk.Tests.fsproj", "{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Suave", "src\Logibit.Hawk.Suave\Logibit.Hawk.Suave.fsproj", "{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "Logibit.Hawk.Suave.Tests", "src\Logibit.Hawk.Suave.Tests\Logibit.Hawk.Suave.Tests.fsproj", "{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{E73AC0E5-498F-46F8-8EB7-4954A5DA2127}"
+	ProjectSection(SolutionItems) = preProject
+		.\README.md = .\README.md
+		.\LICENSE.md = .\LICENSE.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D94A484-8780-4267-9024-FFC5E44A971A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D94A484-8780-4267-9024-FFC5E44A971A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D94A484-8780-4267-9024-FFC5E44A971A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D94A484-8780-4267-9024-FFC5E44A971A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2D89EE1-224E-4BE4-8EDB-B1A252CE8BCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC9AAC14-8E12-45FC-A974-D4F24CBB7E42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE5B78AC-A6A8-437C-8266-7B9E66C938F8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+	EndGlobalSection
+EndGlobal

@@ -85,15 +85,14 @@ let bindHeaderReq (s: Settings<'a>) ctx: Choice<HeaderRequest, string> =
   let ub = UriBuilder ctx.request.url
   ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
-  Binding.header "authorization" Choice1Of2 ctx.request
-  >!> (fun auth ->
-    { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
-      uri           = ub.Uri
-      authorisation = auth
-      payload       = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
-      host          = None
-      port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None
-      contentType   = ctx.request.header "content-type" |> Option.ofChoice })
+  Binding.header "authorization" Choice1Of2 ctx.request |> Choice.map (fun auth ->
+  { ``method`` = Impl.ofSuaveMethod ctx.request.``method``
+    uri = ub.Uri
+    authorisation = auth
+    payload = if ctx.request.rawForm.Length = 0 then None else Some ctx.request.rawForm
+    host = None
+    port = if s.useProxyPort then Some ctx.clientPortTrustProxy else None
+    contentType = ctx.request.header "content-type" |> Option.ofChoice })
 
 // Example functor of the bindHeaderReq function:
 //let bindHeaderReqStr s =
@@ -101,7 +100,7 @@ let bindHeaderReq (s: Settings<'a>) ctx: Choice<HeaderRequest, string> =
 
 let authHeader (settings: Settings<'a>) (requestFactory: ReqHeaderFactory<'a>) =
   fun ctx ->
-    match requestFactory settings ctx >@> AuthError.Other with
+    match requestFactory settings ctx |> Choice.mapSnd AuthError.Other with
     | Choice1Of2 req ->
       Server.authenticate settings req
     | Choice2Of2 err ->
@@ -119,16 +118,15 @@ let bindQueryRequest (s: Settings<'a>) ctx: Choice<QueryRequest, string> =
   let ub = UriBuilder (ctx.request.url)
   ub.Host <- if s.useProxyHost then ctx.request.clientHostTrustProxy else ctx.request.host
 
-  Binding.query "bewit" Choice1Of2 ctx.request
-  >!> (fun bewit ->
-    { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
-      uri           = ub.Uri
-      host          = None
-      port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None })
+  Binding.query "bewit" Choice1Of2 ctx.request |> Choice.map (fun bewit ->
+  { ``method``    = Impl.ofSuaveMethod ctx.request.``method``
+    uri           = ub.Uri
+    host          = None
+    port          = if s.useProxyPort then Some ctx.clientPortTrustProxy else None })
 
 let authBewit (settings: Settings<'a>) (requestFactory: ReqQueryFactory<'a>): HttpContext -> Async<Choice<_, _>> =
   fun ctx ->
-    match requestFactory settings ctx >@> BewitError.Other with
+    match requestFactory settings ctx |> Choice.mapSnd BewitError.Other with
     | Choice1Of2 req ->
       Bewit.authenticate settings req
     | Choice2Of2 err ->

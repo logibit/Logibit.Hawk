@@ -2,8 +2,6 @@
 
 open System
 open System.Collections.Specialized
-open System.Net.Http
-open System.Net.Http.Headers
 open NodaTime
 open Logibit.Hawk
 open Logibit.Hawk.Logging
@@ -12,17 +10,17 @@ open Choice.Operators
 
 type ClientOptions =
   { /// Credentials to the server
-    credentials        : Credentials
+    credentials: Credentials
     /// A pre-calculated timestamp
-    timestamp          : Instant
+    timestamp: Instant
     /// A pre-generated nonce, or otherwise a random string is generated
-    nonce              : string option
+    nonce: string option
     /// Payload content-type (ignored if hash provided)
-    contentType       : string option
+    contentType: string option
     /// Application specific data sent via the ext attribute
-    ext                : string option
+    ext: string option
     /// payload for body hash generation (ignored if hash provided)
-    payload            : byte[] option
+    payload: byte[] option
     /// Pre-calculated payload hash, otherwise calculates the hash automatically
     hash               : string option
     // Time offset to sync with server time (ignored if timestamp provided)
@@ -90,11 +88,11 @@ let calcParameter (credentials : Credentials) (artifacts : FullAuth) (mac : stri
       yield sprintf @", nonce=""%s""" artifacts.nonce
       yield artifacts.hash
             |> Option.map (sprintf @", hash=""%s""")
-            |> Option.orDefault ""
+            |> Option.defaultValue ""
       yield artifacts.ext
             |> Option.map Hoek.escapeHeaderAttr
             |> Option.map (sprintf @", ext=""%s""")
-            |> Option.orDefault ""
+            |> Option.defaultValue ""
       yield sprintf @", mac=""%s""" mac
       match artifacts.app with
       | Some a ->
@@ -137,7 +135,7 @@ let header (uri  : Uri)
     let data =
       { credentials = pars.credentials
         timestamp   = pars.timestamp
-        nonce       = pars.nonce |> Option.orDefault (Random.randomString NonceSize)
+        nonce       = pars.nonce |> Option.orDefault (fun () -> Random.randomString NonceSize)
         ``method``  = meth
         resource    = uri.AbsolutePath
         host        = uri.Host
@@ -160,20 +158,12 @@ let headerStr (uri : string)
   Validation.validateUri uri
   >>= fun uri -> header uri meth pars
 
-/// Sets the Authorization header on the System.Net.Http.HttpRequestMessage
-/// instance. You need to open System.Net.Http to do interesting things, and
-/// the actual value to return is in System.Net.Http.Headers.
-let setAuthHeader (req : HttpRequestMessage) (headerData : HeaderData) =
-  let header = new AuthenticationHeaderValue("Hawk", headerData.parameter)
-  req.Headers.Authorization <- header
-  req
-
 let bewit = Bewit.genBase64Str
 
 /// Sets the Bewit query param on the System.Net.Http.HttpRequestMessage
 /// instance. You need to open System.Net.Http to do interesting things, and
 /// the actual value to return is in System.Net.Http.Headers.
-let setBewit (req : HttpRequestMessage) (bewit : string) =
+let createBewitURI (onto: Uri) (bewit: string) =
 
   let parse (q : string) =
     q.Split('&')
@@ -195,12 +185,12 @@ let setBewit (req : HttpRequestMessage) (bewit : string) =
         | k, None   -> String.Concat [| k; "=" |])
     |> fun xs -> String.Join("&", xs)
 
-  let ub = UriBuilder req.RequestUri
+  let ub = UriBuilder onto
 
   ub.Query <-
-    parse req.RequestUri.Query
+    parse onto.Query
     |> add ("bewit", bewit)
     |> merge
 
-  req.RequestUri <- ub.Uri
-  req
+  ub
+

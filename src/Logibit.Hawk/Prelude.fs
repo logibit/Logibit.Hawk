@@ -35,7 +35,7 @@ module Instant =
 module Hash =
   open System.Text
   open System.Security.Cryptography
-  
+
   let update (h : HashAlgorithm) (bytes : byte[]) =
     h.TransformBlock (bytes, 0, bytes.Length, bytes, 0) |> ignore
 
@@ -54,12 +54,11 @@ module Hash =
     h.TransformFinalBlock([||], 0, 0) |> ignore
     h.Hash
 
-  let create (algo : string) (bytes : byte[]) =
-    let h = HashAlgorithm.Create algo
-    update h bytes
-    h
+  let create (algo: HashAlgorithm) (bytes : byte[]) =
+    update algo bytes
+    algo
 
-  let createSimple (algo : string) (s : string) =
+  let createSimple algo (s : string) =
     create algo (UTF8.bytes s)
 
 

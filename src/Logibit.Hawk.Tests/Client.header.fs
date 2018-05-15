@@ -1,9 +1,7 @@
 ﻿module Logibit.Hawk.Tests.ClientHeader
 
 open Expecto
-
 open NodaTime
-
 open Logibit.Hawk
 open Logibit.Hawk.Types
 open Logibit.Hawk.Client
@@ -161,7 +159,7 @@ let facedInTheWild =
       Expect.equal (Crypto.calcMac "header" res.calcData)
                    "2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E="
                    "mac should eq"
-                   
+
       Expect.equal res.header
                    @"Hawk id=""principals-f5cd484b3cbf455da0405a1d34a33580"", ts=""1420622994"", nonce=""MEyb64"", hash=""o+0u+l+7jf/XB9hpLVHAv4uBvXOg2+Ued0/f+2RJxwc="", mac=""2CUT3CD9HvBmcBWUAnrgv5hlp5kkI2ccK75A0IQCf4E="""
                    "header should eq"

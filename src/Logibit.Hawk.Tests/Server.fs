@@ -59,8 +59,7 @@ let server =
   let timestamp = Instant.FromUnixTimeTicks 123456789L
 
   let clock =
-    { new IClock with
-        member x.Now = timestamp }
+    { new IClock with member x.GetCurrentInstant () = timestamp }
 
   let credsInner id =
     { id        = id
@@ -236,7 +235,7 @@ let server =
     testCaseAsync "errors on a replay" <| async {
       let settings' =
         { settings with
-            nonceValidator = Settings.nonceValidatorMem
+            nonceValidator = Settings.nonceValidatorMem clock (Duration.FromMinutes 20.)
             localClockOffset = ts 1353832234L - clock.GetCurrentInstant() }
       let header = "Hawk id=\"123\", ts=\"1353788437\", nonce=\"k3j4h2\", " +
                    "mac=\"bXx7a7p1h9QYQNZ8x7QhvDQym8ACgab4m3lVSFn4DBw=\", ext=\"hello\""
@@ -271,7 +270,7 @@ let server =
           port          = None
           contentType   = None }
         |> authenticate { settings with localClockOffset = ts 1353788437L - clock.GetCurrentInstant() }
-      
+
       ensureErr res |> function
       | FaultyAuthorizationHeader _ ->
         ()

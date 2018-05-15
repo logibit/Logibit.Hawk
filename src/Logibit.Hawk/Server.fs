@@ -157,7 +157,7 @@ module internal Impl =
     | Some payload when attrs.ext |> Option.fold (fun s t -> t.Contains("ignore-payload")) false ->
       Choice.create ()
     | Some payload ->
-      Choice.ofOption (MissingAttribute "hash") attrs.hash
+      Choice.ofOption (fun () -> MissingAttribute "hash") attrs.hash
       >>= fun attrsHash ->
         let calcHash = Crypto.calcPayloadHashString req.payload creds.algorithm req.contentType
         if String.equalsConstantTime calcHash attrsHash then
@@ -233,7 +233,7 @@ let authenticate (s: Settings<'user>) (req: HeaderRequest)
   let optAttr m = Parse.optAttr m
 
   asyncChoice (logFailure s.logger now) {
-    let! header = parseHeader req.authorisation 
+    let! header = parseHeader req.authorisation
     // parse header, unknown header values so far
     let! attrs =
       Writer.lift (HawkAttributes.create req.``method`` req.uri)
@@ -265,17 +265,12 @@ let authenticate (s: Settings<'user>) (req: HeaderRequest)
 /// - `contentType` - actual request content type
 ///
 /// Returns: true if the payload matches the given hash
-let authenticatePayload (payload : byte [])
-                        (creds : Credentials)
-                        (givenHash : string)
-                        (contentType : string) =
-
+let authenticatePayload (payload: byte []) (creds: Credentials) (givenHash: string) (contentType: string) =
   let calcHash = Crypto.calcPayloadHashString (Some payload) creds.algorithm (Some contentType)
   String.equalsConstantTime calcHash givenHash
 
 /// Authenticate bewit uri
-let authenticateBewit (settings : Settings<'a>) 
-                      (req : QueryRequest) =
+let authenticateBewit (settings: Settings<'a>) (req: QueryRequest) =
   Bewit.authenticate settings req
 
 // TODO: authenticatePayloadHash
